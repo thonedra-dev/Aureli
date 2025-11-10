@@ -1,0 +1,320 @@
+/* Reset and base styles */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body, html, #root {
+  height: 100%;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: #111;
+  background-color: #fff;
+}
+
+/* Container layout */
+.appContainer {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Left form side */
+.formArea {
+  flex: 1;
+  background-color: #fff;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start; /* top aligned */
+  padding: 60px 80px; /* generous horizontal padding */
+  box-shadow: 4px 0 15px rgba(0, 0, 0, 0.05);
+  overflow-y: auto;
+}
+
+/* Title container for vertical stack and horizontal centering */
+.titleContainer {
+  width: 100%;
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+/* Titles */
+.sheinTitle {
+   text-align: center;
+  font-size: 2.25rem;
+  font-weight: 900;
+  letter-spacing: 10px;
+  color: #111;
+  user-select: none;
+  font-family: 'Arial Black', Arial, sans-serif;
+  margin-bottom: 0.25rem;
+}
+
+.shopTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 5px;
+  color: #222;
+  user-select: none;
+}
+
+/* Form container: full width to fill left panel */
+.formStep {
+  width: 100%;
+  background-color: #fafafa;
+  padding: 30px 30px 60px 30px;
+  border-radius: 0;
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-height: auto;
+  position: relative;
+  transition: none;
+}
+
+/* Form labels */
+label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #333;
+}
+
+/* Inputs, textarea, select: uniform styling and full width */
+.formField input,
+.formField textarea,
+.formField select {
+  width: 100%;
+  padding: 12px 15px;
+  border: 2px solid #4caf50;
+  border-radius: 0;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.3s ease;
+  font-family: inherit;
+  background-color: white;
+  box-shadow: none;
+  resize: vertical;
+}
+
+/* Textarea specifics */
+textarea {
+  min-height: 100px;
+  max-height: 150px;
+}
+
+/* Input focus states */
+.formField input:focus,
+.formField textarea:focus,
+.formField select:focus {
+  border-color: #388e3c;
+}
+
+/* Error input states */
+input[aria-invalid="true"],
+textarea[aria-invalid="true"],
+select[aria-invalid="true"] {
+  border-color: #d32f2f !important;
+  box-shadow: 0 2px 6px rgba(211, 47, 47, 0.4);
+}
+
+/* Error message styling */
+.errorMessage {
+  color: #d32f2f;
+  font-size: 0.85rem;
+  margin-top: 4px;
+}
+
+/* Status message styling */
+.statusMessage {
+  font-weight: 700;
+  margin-bottom: 20px;
+  user-select: none;
+  outline: none;
+  text-align: center;
+}
+
+.statusMessage.error {
+  color: #d32f2f;
+}
+
+.statusMessage.success {
+  color: #388e3c;
+}
+
+/* Buttons container */
+.formButtons {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  padding-top: 10px;
+}
+
+/* Buttons base style */
+button {
+  flex: 1;
+  max-width: 140px;
+  padding: 14px 0;
+  font-weight: 900;
+  font-size: 1.1rem;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  color: #fff;
+  font-family: inherit;
+  user-select: none;
+  text-transform: uppercase;
+  box-shadow: none;
+}
+
+/* Disabled button style */
+button:disabled {
+  background-color: #555;
+  cursor: not-allowed;
+}
+
+/* Previous button */
+.previousButton {
+  background-color: #ff7e1b;
+}
+
+.previousButton:hover:not(:disabled) {
+  background-color: #e96f00;
+}
+
+/* Next button */
+.nextButton {
+  background-color: #4caf50;
+}
+
+.nextButton:hover:not(:disabled) {
+  background-color: #388e3c;
+}
+
+/* Submit button */
+.submitButton {
+  background-color: #000;
+}
+
+.submitButton:hover:not(:disabled) {
+  background-color: #222;
+}
+
+/* Country and state fields side-by-side */
+.countryStateRow {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.countryStateRow .formField {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Form field wrapper */
+.formField {
+  margin-bottom: 1rem;
+  width: 100%;
+}
+
+/* Profile pic input overrides */
+input[type="file"] {
+  padding: 6px 0;
+  border: 2px solid #4caf50;
+  border-radius: 0;
+  cursor: pointer;
+}
+
+/* Optional info text for profile pic */
+.infoText {
+  font-size: 0.85rem;
+  color: #555;
+  margin-top: 6px;
+  user-select: none;
+}
+
+/* === Right slideshow panel === */
+.animationArea {
+  flex: 1;
+  height: 100vh;
+  background-size: cover;
+  background-position: center;
+  border-radius: 0;
+  overflow: hidden;
+  position: relative;
+  user-select: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  animation: loginSlideShow 7.5s infinite;
+}
+
+/* Slideshow keyframes using gradient images */
+@keyframes loginSlideShow {
+  0%, 33% {
+    background-image: url('../../assets/images/gradientC.png');
+  }
+  34%, 66% {
+    background-image: url('../../assets/images/gradientB.png');
+  }
+  67%, 100% {
+    background-image: url('../../assets/images/gradientA.png');
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 900px) {
+  .appContainer {
+    flex-direction: column;
+    height: auto;
+  }
+
+  .formArea, .animationArea {
+    flex: none;
+    width: 100%;
+    padding: 20px;
+    box-shadow: none;
+    border-radius: 0;
+    height: auto;
+  }
+
+  .formStep {
+    max-width: 100%;
+    margin-bottom: 1.5rem;
+  }
+
+  .formButtons {
+    justify-content: center;
+    padding: 0;
+    margin-top: 1rem;
+  }
+
+  button {
+    width: 110px;
+    max-width: none;
+    padding: 14px 0;
+  }
+
+  .sheinTitle,
+  .shopTitle {
+    font-size: 1.5rem;
+    letter-spacing: 5px;
+    margin-bottom: 15px;
+  }
+
+  .animationArea {
+    height: 50vh;
+    margin-bottom: 20px;
+  }
+
+  .countryStateRow {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+}
