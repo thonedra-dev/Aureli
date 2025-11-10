@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import ShopRegistrationForm from "./components/Shop_owner/shop_register";
 import ShopLogin from "./components/Shop_owner/shop_login"; // Make sure you import this
-
+import ShopProfile from "./components/Shop_owner/shop_profile";  // Existing route, don't change
 
 const App = () => {
   const [ownerName, setOwnerName] = useState(null);
@@ -19,6 +19,7 @@ const App = () => {
           path="/shop_login"
           element={<ShopLogin onLoginSuccess={(data) => setOwnerName(data.owner_name)} />}
         />
+        <Route path="/profile" element={<ShopProfile ownerName={ownerName} />} />  {/* Existing Shop Profile */}
 
       </Routes>
     </Router>
