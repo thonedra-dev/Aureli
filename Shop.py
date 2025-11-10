@@ -76,7 +76,33 @@ def register_shop():
         traceback.print_exc()
         return jsonify({"message": f"Error registering shop: {str(e)}"}), 500
 
+@app.route('/api/shop_login', methods=['POST'])
+def login():
+    try:
+        login_data = request.get_json()
+        owner_name = login_data.get('owner_name')
+        password = login_data.get('password')
 
+        if not owner_name or not password:
+            return jsonify({"message": "Missing username or password"}), 400
+
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        cursor.execute('SELECT owner_name, password FROM shops WHERE owner_name = %s', (owner_name,))
+        user = cursor.fetchone()
+
+        cursor.close()
+        conn.close()
+
+        if user and user['password'] == password:
+            return jsonify({"message": "Login successful", "owner_name": user['owner_name']}), 200
+        else:
+            return jsonify({"message": "Invalid username or password"}), 401
+
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"message": f"Login error: {str(e)}"}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, port=5070)
