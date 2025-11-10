@@ -103,6 +103,31 @@ def login():
     except Exception as e:
         traceback.print_exc()
         return jsonify({"message": f"Login error: {str(e)}"}), 500
+    
+@app.route('/api/shop_profile', methods=['GET'])
+def shop_profile():
+    try:
+        owner_name = request.args.get('owner_name')
+        if not owner_name:
+            return jsonify({"message": "Missing owner_name parameter"}), 400
+
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        cursor.execute('SELECT id, shop_name, profile_pic, category, country, state, shop_email, description, contact_number FROM shops WHERE owner_name = %s', (owner_name,))
+        shop = cursor.fetchone()
+
+        cursor.close()
+        conn.close()
+
+        if shop:
+            return jsonify(shop), 200
+        else:
+            return jsonify({"message": "Shop not found"}), 404
+
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"message": f"Error fetching shop profile: {str(e)}"}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, port=5070)
