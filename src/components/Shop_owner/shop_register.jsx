@@ -257,7 +257,7 @@ const ShopRegistrationForm = () => {
     });
 
     try {
-      const response = await fetch('http://localhost:5020/api/register_shop', {
+      const response = await fetch('http://localhost:5070/api/register_shop', {
         method: 'POST',
         body: formPayload, // no Content-Type header! browser sets multipart/form-data
       });
