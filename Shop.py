@@ -26,7 +26,7 @@ def get_db_connection():
         host="localhost",
         user="root",
         password="your_password",
-        database="shein",
+        database="aureli",
         port=4306
     )
 
