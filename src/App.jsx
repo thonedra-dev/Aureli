@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import ShopRegistrationForm from "./components/Shop_owner/shop_register";
-import ShopLogin from "./components/Shop_owner/shop_login"; // Make sure you import this
-import ShopProfile from "./components/Shop_owner/shop_profile";  // Existing route, don't change
+import ShopLogin from "./components/Shop_owner/shop_login";
+import ShopProfile from "./components/Shop_owner/shop_profile"; // Import the ShopProfile component
+import ProductSetup from "./components/Shop_owner/product_setup"; // Import ProductSetup component
 
 const App = () => {
   const [ownerName, setOwnerName] = useState(null);
@@ -13,14 +14,16 @@ const App = () => {
       <Routes>
         {/* Shop Owner routes */}
         <Route path="/shop_register" element={<ShopRegistrationForm />} />
+        <Route path="/shop_login" element={<ShopLogin />} />
 
-        {/* Shop Login route */}
-        <Route
-          path="/shop_login"
-          element={<ShopLogin onLoginSuccess={(data) => setOwnerName(data.owner_name)} />}
-        />
-        <Route path="/profile" element={<ShopProfile ownerName={ownerName} />} />  {/* Existing Shop Profile */}
+        {/* Shop Profile route */}
+        <Route path="/shop_profile" element={<ShopProfile />} />
 
+        {/* Product Setup route */}
+        <Route path="/product_setup" element={<ProductSetup />} /> {/* Added product_setup route */}
+
+        {/* Redirect default route */}
+        <Route path="/" element={<Navigate to="/shop_login" />} />
       </Routes>
     </Router>
   );
