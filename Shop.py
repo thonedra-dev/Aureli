@@ -75,59 +75,94 @@ def register_shop():
     except Exception as e:
         traceback.print_exc()
         return jsonify({"message": f"Error registering shop: {str(e)}"}), 500
-
+ 
 @app.route('/api/shop_login', methods=['POST'])
-def login():
+def shop_login():
     try:
-        login_data = request.get_json()
-        owner_name = login_data.get('owner_name')
-        password = login_data.get('password')
+        # Extract data from the request
+        shop_name = request.json.get('shop_name')
+        owner_name = request.json.get('owner_name')
+        password = request.json.get('password')
 
-        if not owner_name or not password:
-            return jsonify({"message": "Missing username or password"}), 400
+        # Check if all the required fields are provided
+        if not all([shop_name, owner_name, password]):
+            return jsonify({"message": "Missing required fields"}), 400
 
+        # Connect to the database
         conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor()
 
-        cursor.execute('SELECT owner_name, password FROM shops WHERE owner_name = %s', (owner_name,))
-        user = cursor.fetchone()
+        # Query to find the shop by shop_name, owner_name, and password
+        query = '''
+            SELECT id FROM shops
+            WHERE shop_name = %s AND owner_name = %s AND password = %s
+        '''
+        cursor.execute(query, (shop_name, owner_name, password))
+        shop = cursor.fetchone()
 
-        cursor.close()
-        conn.close()
-
-        if user and user['password'] == password:
-            return jsonify({"message": "Login successful", "owner_name": user['owner_name']}), 200
+        # Check if the shop is found
+        if shop:
+            shop_id = shop[0]  # Get the shop ID from the result
+            return jsonify({"message": "Login successful", "shop_id": shop_id}), 200
         else:
-            return jsonify({"message": "Invalid username or password"}), 401
+            return jsonify({"message": "Invalid credentials"}), 401
 
     except Exception as e:
         traceback.print_exc()
-        return jsonify({"message": f"Login error: {str(e)}"}), 500
-    
-@app.route('/api/shop_profile', methods=['GET'])
-def shop_profile():
-    try:
-        owner_name = request.args.get('owner_name')
-        if not owner_name:
-            return jsonify({"message": "Missing owner_name parameter"}), 400
+        return jsonify({"message": f"Error during login: {str(e)}"}), 500
 
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
-
-        cursor.execute('SELECT id, shop_name, profile_pic, category, country, state, shop_email, description, contact_number FROM shops WHERE owner_name = %s', (owner_name,))
-        shop = cursor.fetchone()
-
+    finally:
         cursor.close()
         conn.close()
 
+@app.route('/api/shop_profile', methods=['POST'])
+def shop_profile():
+    try:
+        # Extract shop_id from the request body (received as JSON)
+        data = request.get_json()
+        shop_id = data.get('shop_id')
+
+        if not shop_id:
+            return jsonify({"message": "Shop ID is required"}), 400
+
+        # Connect to the database
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Query to fetch shop profile details based on the shop_id
+        query = '''
+            SELECT id, shop_name, profile_pic, category, country, state, shop_email, description, contact_number
+            FROM shops
+            WHERE id = %s
+        '''
+        cursor.execute(query, (shop_id,))
+        shop = cursor.fetchone()
+
+        # Check if the shop is found
         if shop:
-            return jsonify(shop), 200
+            shop_data = {
+                "id": shop[0],
+                "shop_name": shop[1],
+                "profile_pic": shop[2],
+                "category": shop[3],
+                "country": shop[4],
+                "state": shop[5],
+                "shop_email": shop[6],
+                "description": shop[7],
+                "contact_number": shop[8]
+            }
+            return jsonify(shop_data), 200
         else:
             return jsonify({"message": "Shop not found"}), 404
 
     except Exception as e:
         traceback.print_exc()
         return jsonify({"message": f"Error fetching shop profile: {str(e)}"}), 500
+
+    finally:
+        cursor.close()
+        conn.close()
+
 
 if __name__ == '__main__':
     app.run(debug=True, port=5070)
