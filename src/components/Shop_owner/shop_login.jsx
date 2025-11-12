@@ -25,13 +25,14 @@ const slides = [
 ];
 
 const ShopLogin = ({ onLoginSuccess }) => {
-  const [formData, setFormData] = useState({ owner_name: '', password: '' });
+  const [formData, setFormData] = useState({ shop_name: '', owner_name: '', password: '' });
   const [errors, setErrors] = useState({});
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
   const navigate = useNavigate();
 
+  // Automatic slide change every 2.5 seconds
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentSlide(prev => (prev + 1) % slides.length);
@@ -39,6 +40,7 @@ const ShopLogin = ({ onLoginSuccess }) => {
     return () => clearInterval(interval);
   }, []);
 
+  // Handle input field changes
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -46,14 +48,17 @@ const ShopLogin = ({ onLoginSuccess }) => {
     setStatus(null);
   };
 
+  // Validate form fields
   const validateForm = () => {
     const newErrors = {};
+    if (!formData.shop_name.trim()) newErrors.shop_name = 'Please enter your shop name';
     if (!formData.owner_name.trim()) newErrors.owner_name = 'Please enter your username';
     if (!formData.password) newErrors.password = 'Please enter your password';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
+  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
@@ -72,7 +77,26 @@ const ShopLogin = ({ onLoginSuccess }) => {
       if (response.ok) {
         setStatus({ type: 'success', message: 'Login successful!' });
         if (onLoginSuccess) onLoginSuccess(data);
-        navigate('/profile');
+
+        // Capture the shop_id from the login response
+        const shopId = data.shop_id;
+
+        // Use the shop_id to fetch the shop profile (send shop_id in the body as POST)
+        const profileResponse = await fetch('http://localhost:5070/api/shop_profile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ shop_id: shopId }),  // Send shop_id in the request body
+        });
+
+        const profileData = await profileResponse.json();
+
+        if (profileResponse.ok) {
+          // Handle the profile data
+          console.log('Shop Profile:', profileData);
+         navigate('/shop_profile', { state: { shop_id: shopId } });  // Navigate to profile page or wherever you need
+        } else {
+          setStatus({ type: 'error', message: profileData.message || 'Failed to load profile' });
+        }
       } else {
         setStatus({ type: 'error', message: data.message || 'Login failed' });
       }
@@ -87,7 +111,6 @@ const ShopLogin = ({ onLoginSuccess }) => {
     <div className="login-appContainer" role="main" aria-labelledby="loginTitle">
       {/* Left side slideshow */}
       <div className="login-leftSide" aria-hidden="true">
-        
         {slides.map((slide, index) => (
           <div
             key={slide.id}
@@ -139,6 +162,25 @@ const ShopLogin = ({ onLoginSuccess }) => {
 
           <form onSubmit={handleSubmit} noValidate aria-live="polite">
             <div className="login-formField">
+              <label htmlFor="shop_name">Shop Name:</label>
+              <input
+                id="shop_name"
+                name="shop_name"
+                type="text"
+                value={formData.shop_name}
+                onChange={handleChange}
+                aria-invalid={!!errors.shop_name}
+                aria-describedby="shop_name-error"
+                autoComplete="off"
+              />
+              {errors.shop_name && (
+                <p id="shop_name-error" className="login-errorMessage" role="alert">
+                  {errors.shop_name}
+                </p>
+              )}
+            </div>
+
+            <div className="login-formField">
               <label htmlFor="owner_name">Username:</label>
               <input
                 id="owner_name"
@@ -149,7 +191,6 @@ const ShopLogin = ({ onLoginSuccess }) => {
                 aria-invalid={!!errors.owner_name}
                 aria-describedby="owner_name-error"
                 autoComplete="username"
-                autoFocus
               />
               {errors.owner_name && (
                 <p id="owner_name-error" className="login-errorMessage" role="alert">
