@@ -143,7 +143,7 @@ def shop_profile():
             shop_data = {
                 "id": shop[0],
                 "shop_name": shop[1],
-                "profile_pic": shop[2],
+                "profile_pic": shop[2],  # File path for profile_pic
                 "category": shop[3],
                 "country": shop[4],
                 "state": shop[5],
@@ -162,6 +162,197 @@ def shop_profile():
     finally:
         cursor.close()
         conn.close()
+
+
+
+
+@app.route('/api/products', methods=['POST'])
+def create_product():
+    try:
+        # Inline helper logic: Safely convert value to float or None
+        def inline_safe_float(val):
+            try:
+                return float(val) if val else None
+            except (ValueError, TypeError):
+                return None
+
+        # Inline helper logic: Safely convert value to integer or None
+        def inline_safe_int(val):
+            try:
+                return int(val) if val else None
+            except (ValueError, TypeError):
+                return None
+
+        product_name = request.form.get('product_name')
+        category = request.form.get('category')
+        default_color = request.form.get('default_color')
+        is_active = request.form.get('is_active', '1')  # Default to '1' (True)
+
+        if not product_name or not category:
+            return jsonify({"message": "Product name and category are required"}), 400
+
+        # --- FILE UPLOAD ---
+        default_picture = request.files.get('default_picture')
+        default_picture_path = None
+        if default_picture and allowed_file(default_picture.filename):
+            filename = secure_filename(default_picture.filename)
+            filename = f"{datetime.now().strftime('%Y%m%d%H%M%S')}_{filename}"
+            save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            default_picture.save(save_path)
+            default_picture_path = f"/{save_path.replace(os.sep, '/')}"
+        
+        current_datetime = datetime.now()
+        shop_id = request.form.get('shop_id')
+        if not shop_id:
+            return jsonify({"message": "shop_id is required to associate product"}), 400
+
+        # --- COLLECT NEW PRICE/STOCK FIELDS ---
+        sizes = ["XS", "S", "M", "L", "XL", "XLL"]
+        size_data = {}
+        size_columns = {}  # This will store the size column update logic
+        for size in sizes:
+            price = inline_safe_float(request.form.get(f"{size}_price"))
+            stock = inline_safe_int(request.form.get(f"{size}_stock"))
+            size_data[f"{size}_price"] = price
+            size_data[f"{size}_stock"] = stock
+            
+            # Check if both price and stock are provided for the size
+            if price is not None and stock is not None:
+                size_columns[size] = 1  # Mark the size as active by setting the column to 1
+            else:
+                size_columns[size] = 0  # Mark the size as inactive by setting the column to 0
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # NOTE: SQL INSERT STATEMENT IS MODIFIED TO REFLECT NEW DB COLUMNS
+        cursor.execute('''
+            INSERT INTO products 
+            (shop_id, product_name, category, created_at, default_color, default_picture, is_active, 
+             XS_price, XS_stock, S_price, S_stock, M_price, M_stock, 
+             L_price, L_stock, XL_price, XL_stock, XLL_price, XLL_stock,
+             XS, S, M, L, XL, XLL)  -- Include size columns in the insert statement
+            VALUES (%s, %s, %s, %s, %s, %s, %s, 
+                    %s, %s, %s, %s, %s, %s, 
+                    %s, %s, %s, %s, %s, %s,
+                    %s, %s, %s, %s, %s, %s)
+        ''', (
+            shop_id, product_name, category, current_datetime, default_color, default_picture_path, is_active,
+            size_data["XS_price"], size_data["XS_stock"], 
+            size_data["S_price"], size_data["S_stock"], 
+            size_data["M_price"], size_data["M_stock"], 
+            size_data["L_price"], size_data["L_stock"], 
+            size_data["XL_price"], size_data["XL_stock"], 
+            size_data["XLL_price"], size_data["XLL_stock"],
+            size_columns["XS"], size_columns["S"], size_columns["M"], size_columns["L"], size_columns["XL"], size_columns["XLL"]
+        ))
+
+        conn.commit()
+        product_id = cursor.lastrowid
+
+        cursor.close()
+        conn.close()
+
+        return jsonify({"message": "Product created successfully", "product_id": product_id}), 201
+
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"message": f"Error creating product: {str(e)}"}), 500
+
+    
+@app.route('/api/variances', methods=['POST'])
+def create_variance():
+    try:
+        # Inline helper logic: Safely convert value to float or None
+        def inline_safe_float(val):
+            try:
+                return float(val) if val else None
+            except (ValueError, TypeError):
+                return None
+
+        # Inline helper logic: Safely convert value to integer or None
+        def inline_safe_int(val):
+            try:
+                # Stock should only be saved if a value is actually provided
+                return int(val) if val else None
+            except (ValueError, TypeError):
+                return None
+
+        product_id = request.form.get('product_id')
+        color = request.form.get('color')
+
+        if not product_id or not color:
+            return jsonify({"message": "Missing required fields for variance (product_id or color)"}), 400
+
+        # Ensure product_id is an integer
+        try:
+            product_id = int(product_id)
+        except (ValueError, TypeError):
+            return jsonify({"message": "Invalid product_id format"}), 400
+
+        # --- COLLECT NEW PRICE/STOCK FIELDS ---
+        sizes = ["XS", "S", "M", "L", "XL", "XLL"]
+        size_data = {}
+        size_columns = {}  # To store which sizes are active
+
+        for size in sizes:
+            price = inline_safe_float(request.form.get(f"{size}_price"))
+            stock = inline_safe_int(request.form.get(f"{size}_stock"))
+            size_data[f"{size}_price"] = price
+            size_data[f"{size}_stock"] = stock
+
+            # Check if both price and stock are provided for the size
+            if price is not None and stock is not None:
+                size_columns[size] = 1  # Mark the size as active by setting the column to 1
+            else:
+                size_columns[size] = 0  # Mark the size as inactive by setting the column to 0
+
+        # --- FILE UPLOAD ---
+        picture = request.files.get('picture')
+        picture_path = None
+        if picture and allowed_file(picture.filename):
+            filename = secure_filename(picture.filename)
+            filename = f"{datetime.now().strftime('%Y%m%d%H%M%S')}_{filename}"
+            save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            picture.save(save_path)
+            picture_path = f"/{save_path.replace(os.sep, '/')}"
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # NOTE: SQL INSERT STATEMENT IS MODIFIED TO REFLECT NEW DB COLUMNS
+        cursor.execute('''
+            INSERT INTO variances
+            (product_id, color, picture, 
+             XS_price, XS_stock, S_price, S_stock, M_price, M_stock, 
+             L_price, L_stock, XL_price, XL_stock, XLL_price, XLL_stock,
+             XS, S, M, L, XL, XLL)  -- Include size columns in the insert statement
+            VALUES (%s, %s, %s, 
+                    %s, %s, %s, %s, %s, %s, 
+                    %s, %s, %s, %s, %s, %s,
+                    %s, %s, %s, %s, %s, %s)
+        ''', (
+            product_id, color, picture_path,
+            size_data["XS_price"], size_data["XS_stock"], 
+            size_data["S_price"], size_data["S_stock"], 
+            size_data["M_price"], size_data["M_stock"], 
+            size_data["L_price"], size_data["L_stock"], 
+            size_data["XL_price"], size_data["XL_stock"], 
+            size_data["XLL_price"], size_data["XLL_stock"],
+            size_columns["XS"], size_columns["S"], size_columns["M"], size_columns["L"], size_columns["XL"], size_columns["XLL"]
+        ))
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        return jsonify({"message": "Variance created successfully"}), 201
+
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"message": f"Error creating variance: {str(e)}"}), 500
+    
+
 
 
 if __name__ == '__main__':
