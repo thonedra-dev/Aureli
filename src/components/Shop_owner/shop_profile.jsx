@@ -12,17 +12,17 @@ const fieldLabels = {
 };
 
 const ShopProfile = () => {
-  // Retrieve shop_id from the navigation state
-  const { state } = useLocation(); 
-  const shopId = state?.shop_id; // Get shop_id passed from the login page
-  
+  // Retrieve shop_id and products from the navigation state
+  const { state } = useLocation();
+  const { shop_id: shopId, products } = state; // Get shop_id and products passed from the login page
+
   const navigate = useNavigate(); // Initialize the navigate function
 
   const [shop, setShop] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fetch shop profile based on shop_id
+  // Fetch shop profile based on shop_id (if not already provided by login page)
   useEffect(() => {
     if (!shopId) {
       setError('Missing shop ID');
@@ -57,7 +57,7 @@ const ShopProfile = () => {
 
   const handleAddProductClick = () => {
     // On click of the add product button, navigate to product setup page
-    navigate('/product_setup', { state: { shop_id: shopId } }); // Pass shop_id to product_setup page
+    navigate('/product_setup', { state: { shop_id: shopId } }); // Pass shop_id to product setup page
   };
 
   return (
@@ -99,6 +99,8 @@ const ShopProfile = () => {
             </button>
           </section>
         </section>
+
+       
       </section>
     </main>
   );
