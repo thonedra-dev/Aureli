@@ -1,0 +1,314 @@
+
+/* General product setup container */
+.productSetupContainer {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: Arial, sans-serif;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+h2 {
+  font-size: 2rem;
+  font-weight: bold;
+  margin-bottom: 20px;
+  text-align: center;
+  color: #333;
+}
+
+/* Form groups */
+.formGroup {
+  margin-bottom: 20px;
+}
+
+label {
+  font-size: 1rem;
+  font-weight: 600;
+  display: block;
+  margin-bottom: 8px;
+  color: #333;
+}
+
+input[type="text"],
+input[type="number"],
+input[type="file"],
+select {
+  width: 100%;
+  padding: 10px;
+  font-size: 1rem;
+  border: 2px solid #4caf50;
+  border-radius: 4px;
+  box-sizing: border-box;
+  margin-bottom: 10px;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus {
+  border-color: #388e3c;
+}
+
+/* Category selection buttons */
+.categoryButtons {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.categoryButtons button {
+  padding: 12px 20px;
+  background-color: #f0f0f0;
+  border: 2px solid #ccc;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  color: #333;
+}
+
+.categoryButtons button.selected {
+  background-color: #388e3c;
+  color: #fff;
+  border-color: #388e3c;
+}
+
+.categoryButtons button:hover {
+  background-color: #388e3c;
+  color: #fff;
+}
+
+/* Size selection buttons */
+.sizeStockInputs {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.sizeStockInput {
+  flex: 1;
+  min-width: 150px;
+}
+
+.sizeStockInput button {
+  width: 100%;
+  padding: 12px;
+  background-color: #f0f0f0;
+  border: 2px solid #ccc;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+  margin-bottom: 10px;
+  transition: background-color 0.3s;
+  color: #333;
+}
+
+.sizeStockInput button:hover {
+  background-color: #388e3c;
+  color: #fff;
+}
+
+.sizeStockInput input {
+  width: 100%;
+  padding: 12px;
+  font-size: 1rem;
+  margin-top: 10px;
+  border: 2px solid #4caf50;
+  border-radius: 4px;
+}
+
+/* Image preview */
+.imagePreview {
+  margin-top: 10px;
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Variant section */
+.variantSection {
+  margin-top: 30px;
+}
+
+.variantItem {
+  padding: 20px;
+  background-color: #f9f9f9;
+  margin-bottom: 20px;
+  border-radius: 4px;
+  border: 2px solid #ddd;
+}
+
+.variantItem span {
+  font-size: 1rem;
+}
+
+button.removeVariantBtn {
+  background-color: red;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-left: 10px;
+}
+
+button.removeVariantBtn:hover {
+  background-color: #d32f2f;
+}
+
+/* Add variant button */
+button.addVariantBtn {
+  background-color: #4caf50;
+  color: white;
+  padding: 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  width: 100%;
+  font-size: 1.2rem;
+}
+
+button.addVariantBtn:hover {
+  background-color: #388e3c;
+}
+
+/* Submit Button */
+.submitBtn {
+  background-color: #388e3c;
+  color: white;
+  padding: 12px 20px;
+  font-size: 1.2rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  width: 100%;
+  margin-top: 20px;
+}
+
+.submitBtn:hover {
+  background-color: #2c6e2f;
+}
+
+.submitBtn:disabled {
+  background-color: #aaa;
+  cursor: not-allowed;
+}
+
+/* Variant Section Fixes for Layout */
+.variantItem {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.variantItem .sizeButtons {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.variantItem .sizeButton {
+  flex: 1;
+  padding: 12px;
+  background-color: #f0f0f0;
+  border: 2px solid #ccc;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  color: #333;
+}
+
+.variantItem .sizeButton.active {
+  background-color: #388e3c;
+  color: #fff;
+}
+
+.variantItem .sizeButton:hover {
+  background-color: #388e3c;
+  color: #fff;
+}
+
+.variantItem .sizeStockInputs {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.variantItem .sizeStockInputs input {
+  flex: 1;
+  padding: 12px;
+  font-size: 1rem;
+  margin-top: 10px;
+  border: 2px solid #4caf50;
+  border-radius: 4px;
+}
+
+.variantItem .imagePreview {
+  max-width: 150px;
+  margin-top: 10px;
+}
+
+.variantItem .imagePreview img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+}
+
+.variantItem .removeVariantBtn {
+  margin-top: 10px;
+  width: 100%;
+}
+
+/* Compact the size and stock inputs */
+input[type="text"],
+input[type="number"] {
+  width: auto;
+  max-width: 200px;
+  display: inline-block;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus {
+  border-color: #388e3c;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .productSetupContainer {
+    padding: 10px;
+  }
+
+  .categoryButtons {
+    flex-direction: column;
+  }
+
+  .sizeStockInputs {
+    flex-direction: column;
+  }
+
+  .sizeStockInput {
+    min-width: 100%;
+  }
+
+  .sizeStockInput button {
+    width: 100%;
+  }
+
+  .variantItem .sizeButtons {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .variantItem .sizeStockInputs {
+    flex-direction: column;
+  }
+
+  .variantItem .sizeStockInputs input {
+    width: 100%;
+  }
+}
+
