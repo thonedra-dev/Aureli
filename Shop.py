@@ -437,6 +437,175 @@ def product_edit_mode():
             conn.rollback()
         return jsonify({"message": f"Error updating product: {str(e)}"}), 500
 
+@app.route('/api/add_variant', methods=['POST'])
+def add_variant():
+    """
+    Create a NEW variant for an existing product.
+
+    Accepts either:
+      - JSON:
+          {
+            "product_id": 11,
+            "color": "camel",
+            "sizes": {
+              "XS": { "enable": true,  "price": 8.0,  "stock": 10 },
+              "S":  { "enable": true,  "price": 9.0,  "stock": 5  }
+            }
+          }
+
+      - multipart/form-data (recommended for UI with image upload):
+          product_id: 11
+          color: camel
+          sizes: (JSON string as above)
+          image_file: <file>
+    """
+    conn = None
+    try:
+        # --- 1. Detect JSON vs multipart/form-data ---------------------
+        is_json = request.is_json
+
+        if is_json:
+            data = request.get_json() or {}
+            image_file = None
+        else:
+            data = request.form.to_dict()
+            image_file = request.files.get('image_file')  # optional
+
+            # sizes may come as JSON string in form field "sizes"
+            sizes_raw = data.get('sizes')
+            if sizes_raw:
+                try:
+                    data['sizes'] = json.loads(sizes_raw)
+                except json.JSONDecodeError:
+                    return jsonify({"message": "Invalid JSON in 'sizes' field"}), 400
+
+        # --- 2. Basic fields -------------------------------------------
+        product_id = data.get('product_id')
+        color = data.get('color')
+
+        if not product_id or not color:
+            return jsonify({"message": "product_id and color are required"}), 400
+
+        try:
+            product_id = int(product_id)
+        except (TypeError, ValueError):
+            return jsonify({"message": "Invalid product_id"}), 400
+
+        # Sizes object: { "XS": { "enable": true, "price": 10, "stock": 5 }, ... }
+        sizes_updates = data.get('sizes', {}) or {}
+        valid_sizes = ["XS", "S", "M", "L", "XL", "XLL"]
+
+        # Helpers to safely parse numbers
+        def safe_float(val):
+            try:
+                return float(val) if val is not None and val != "" else None
+            except (ValueError, TypeError):
+                return None
+
+        def safe_int(val):
+            try:
+                return int(val) if val is not None and val != "" else None
+            except (ValueError, TypeError):
+                return None
+
+        # --- 3. Prepare per-size values --------------------------------
+        # Initialize all prices/stocks as None, flags as 0
+        size_price_stock = {
+            "XS_price": None, "XS_stock": None,
+            "S_price":  None, "S_stock":  None,
+            "M_price":  None, "M_stock":  None,
+            "L_price":  None, "L_stock":  None,
+            "XL_price": None, "XL_stock": None,
+            "XLL_price": None, "XLL_stock": None,
+        }
+        size_flags = {sz: 0 for sz in valid_sizes}
+
+        # Fill in from sizes_updates
+        if isinstance(sizes_updates, dict):
+            for size_key, size_data in sizes_updates.items():
+                if size_key not in valid_sizes:
+                    return jsonify({"message": f"Invalid size key: {size_key}"}), 400
+
+                if not isinstance(size_data, dict):
+                    return jsonify({"message": f"Invalid data for size {size_key}"}), 400
+
+                enable = size_data.get("enable")
+                price = safe_float(size_data.get("price"))
+                stock = safe_int(size_data.get("stock"))
+
+                if enable:
+                    # For enabled size, price & stock must be provided
+                    if price is None or stock is None:
+                        return jsonify({
+                            "message": f"Price and stock are required when enabling size {size_key}"
+                        }), 400
+
+                    size_flags[size_key] = 1
+                    size_price_stock[f"{size_key}_price"] = price
+                    size_price_stock[f"{size_key}_stock"] = stock
+                else:
+                    # Disabled / not provided -> keep flag 0, price/stock as None
+                    pass
+
+        # Optional: require at least one active size
+        if not any(size_flags.values()):
+            return jsonify({"message": "At least one size must be enabled"}), 400
+
+        # --- 4. Handle image upload ------------------------------------
+        picture_path = None
+        if image_file:
+            if not allowed_file(image_file.filename):
+                return jsonify({"message": "Unsupported image file type"}), 400
+
+            filename = secure_filename(image_file.filename)
+            filename = f"{datetime.now().strftime('%Y%m%d%H%M%S')}_{filename}"
+            save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            image_file.save(save_path)
+            picture_path = f"/{save_path.replace(os.sep, '/')}"
+
+        # --- 5. Insert into variances table -----------------------------
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.execute(
+            '''
+            INSERT INTO variances
+            (product_id, color, picture,
+             XS_price, XS_stock, S_price, S_stock, M_price, M_stock,
+             L_price, L_stock, XL_price, XL_stock, XLL_price, XLL_stock,
+             XS, S, M, L, XL, XLL)
+            VALUES
+            (%s, %s, %s,
+             %s, %s, %s, %s, %s, %s,
+             %s, %s, %s, %s, %s, %s,
+             %s, %s, %s, %s, %s, %s)
+            ''',
+            (
+                product_id,
+                color,
+                picture_path,
+                size_price_stock["XS_price"],  size_price_stock["XS_stock"],
+                size_price_stock["S_price"],   size_price_stock["S_stock"],
+                size_price_stock["M_price"],   size_price_stock["M_stock"],
+                size_price_stock["L_price"],   size_price_stock["L_stock"],
+                size_price_stock["XL_price"],  size_price_stock["XL_stock"],
+                size_price_stock["XLL_price"], size_price_stock["XLL_stock"],
+                size_flags["XS"], size_flags["S"], size_flags["M"],
+                size_flags["L"], size_flags["XL"], size_flags["XLL"],
+            )
+        )
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        return jsonify({"message": "Variant created successfully"}), 201
+
+    except Exception as e:
+        traceback.print_exc()
+        if conn:
+            conn.rollback()
+        return jsonify({"message": f"Error creating variant: {str(e)}"}), 500
 
 
 
