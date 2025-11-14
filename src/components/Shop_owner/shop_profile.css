@@ -12,12 +12,12 @@
   overflow: hidden; /* Prevent outer scroll */
 }
 
-/* SHEIN Title */
+/* Optional SHEIN-style title if you use it */
 .sheinTitle {
-   font-size: 2rem;
+  font-size: 2rem;
   font-family: 'Arial Black', Arial, sans-serif;
   margin-top: 0;
-  margin-bottom: 1rem; /* add some spacing below */
+  margin-bottom: 1rem;
   margin-left: 20px;
   letter-spacing: 10px;
   color: #111;
@@ -30,28 +30,29 @@
 /* Flex wrapper for profile on left and products on right */
 .profileAndProductsWrapper {
   display: flex;
-  gap: 1rem; /* Reduced gap */
-  margin-top: 0.5rem; /* Reduced margin */
+  gap: 1rem;
+  margin-top: 0.5rem;
   max-width: 100vw;
   box-sizing: border-box;
   height: calc(100vh - 80px); /* Adjust for title height + margin */
+  position: relative;
 }
 
 /* Profile Section (Left Side) fixed */
 .profileSection {
-     position: relative;
   padding-top: 3rem; /* To make space for the line */
-  /* Remove existing border-top */
   border-top: none;
-  width: 28%; /* Reduced width */
+  width: 28%;
   padding-right: 1rem;
   border-right: 1px solid #ddd;
   box-sizing: border-box;
   min-width: 280px;
-  position: fixed; /* FIXED position */
-  top: 80px; /* Below SHEIN title + margin */
-  left: 40px; /* Align with container margin */
+
+  position: fixed; /* fixed left column */
+  top: 80px;       /* Below title */
+  left: 40px;      /* Align with container margin */
   bottom: 0;
+
   overflow-y: auto; /* Scroll inside profile */
   background: white;
   z-index: 10;
@@ -63,24 +64,24 @@
   top: 0;
   left: 50%;
   transform: translateX(-50%);
-  width: 120px; /* Adjust length of line */
-  height: 3px; /* Thickness of the line */
+  width: 120px;
+  height: 3px;
   background-color: black;
-  border-radius: 2px; /* optional rounded edges */
+  border-radius: 2px;
 }
 
 /* Profile header with picture and shop name */
 .profileHeader {
   display: flex;
   align-items: center;
-  gap: 1.2rem; /* Slightly reduced gap */
-  margin-bottom: 1.5rem; /* Reduced bottom margin */
+  gap: 1.2rem;
+  margin-bottom: 1.5rem;
   text-align: left;
 }
 
 .profileHeader img {
-  width: 110px; /* Reduced size */
-  height: 110px; /* Reduced size */
+  width: 110px;
+  height: 110px;
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid #ddd;
@@ -88,10 +89,10 @@
 }
 
 .profileHeader h2 {
-  font-size: 18px; /* Slightly smaller */
+  font-size: 18px;
   font-weight: 500;
   margin: 0;
-  letter-spacing: 6px; /* Reduced letter spacing */
+  letter-spacing: 6px;
   user-select: none;
   color: #111;
 }
@@ -108,8 +109,8 @@
 
 .profileDetails th,
 .profileDetails td {
-  padding: 8px 10px; /* Reduced padding */
-  border-bottom: 1.5px solid #999; /* Slightly thinner */
+  padding: 8px 10px;
+  border-bottom: 1.5px solid #999;
 }
 
 .profileDetails th {
@@ -122,29 +123,29 @@
 
 /* Action icon buttons below profile */
 .iconButtonRow {
-  margin-top: 20px; /* Reduced margin */
+  margin-top: 20px;
   display: flex;
   justify-content: flex-start;
-  gap: 15px; /* Reduced gap */
+  gap: 15px;
   padding-left: 12px;
 }
 
 .iconButton {
   background: transparent;
   border: none;
-  padding: 6px; /* Reduced padding */
+  padding: 6px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px; /* Smaller size */
+  width: 40px;
   height: 40px;
   border-radius: 8px;
   transition: background-color 0.3s ease;
 }
 
 .iconButton svg {
-  width: 20px; /* Smaller icon */
+  width: 20px;
   height: 20px;
   fill: grey;
   transition: fill 0.3s ease;
@@ -154,46 +155,45 @@
   fill: black;
 }
 
-/* Products Container (Right Side) */
-.productsContainer {
+/* Products Section (Right Side) – matches your JSX: className="productsSection" */
+.productsSection {
   width: calc(72% - 40px); /* Adjusted width accounting fixed profile + margin */
-  margin-left: calc(28% + 1rem); /* Push right to not overlap fixed profile */
+  margin-left: calc(28% + 1rem); /* Push right so it doesn't sit under fixed profile */
   padding-left: 1rem;
   order: 2;
   box-sizing: border-box;
   min-width: 350px;
   height: 100%; /* Full height inside main */
-  overflow-y: auto; /* Scrollable */
-  padding-top: 0; /* Remove extra padding */
+  overflow-y: auto; /* Scrollable products */
+  padding-top: 0;
   scrollbar-width: none;
-  scrollbar-color: auto;
   position: relative;
 }
 
-.productsContainer h2 {
-  margin-top: 0;    /* Remove any top margin */
-  margin-bottom: 2rem; /* Reduce bottom margin */
-  padding-left: 1rem; /* Optional: align with grid padding */
+.productsSection h2 {
+  margin-top: 0;
+  margin-bottom: 2rem;
+  padding-left: 1rem;
   font-weight: 700;
   font-size: 1.5rem;
   letter-spacing: 5px;
 }
 
-/* Grid layout for product cards: exactly 3 per row, smaller cards */
-.productCardsGrid {
+/* Grid layout for product cards – matches JSX: className="productGrid" */
+.productGrid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(280px, 1fr)); /* Reduced card min width */
-  gap: 1.25rem; /* Reduced gap */
+  grid-template-columns: repeat(3, minmax(280px, 1fr));
+  gap: 1.25rem;
   margin-top: 0;
-  padding-top: 0; /* Added: remove top padding */
+  padding-top: 0;
   padding-bottom: 1rem;
-  overflow-x: hidden; /* Prevent horizontal scroll */
+  overflow-x: hidden;
 }
 
-/* Product Card styling - smaller width & height */
+/* Product card styling – matches JSX: className="productCard" */
 .productCard {
   background-color: #fff;
-  box-shadow: 0 5px 14px rgba(0, 0, 0, 0.1); /* Slightly lighter shadow */
+  box-shadow: 0 5px 14px rgba(0, 0, 0, 0.1);
   overflow: hidden;
   cursor: pointer;
   display: flex;
@@ -203,7 +203,7 @@
   border: 1px solid #eee;
   padding-bottom: 10px;
   border-radius: 0;
-  height: 420px; /* Reduced height by ~20% from ~400px */
+  height: 420px;
   width: 240px;
 }
 
@@ -212,28 +212,29 @@
   border-color: #ddd;
 }
 
-.productCardImage {
+/* Image in card – matches JSX: className="productImage" */
+.productImage {
   width: 100%;
   aspect-ratio: 3 / 4;
   object-fit: cover;
   display: block;
   border-bottom: 1px solid #f0f0f0;
   border-radius: 0;
-  height: 350px; /* Reduce height to fit new card height */
+  height: 350px;
 }
 
-/* Info section below image */
-.productCardInfo {
-  padding: 0.8rem 1rem 0 1rem; /* Reduced padding */
+/* Info section below image – matches JSX: className="productInfo" */
+.productInfo {
+  padding: 0.8rem 1rem 0 1rem;
   flex-grow: 1;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
 }
 
-/* Product name styling */
-.productCardName {
-  font-size: 1.1rem; /* Slightly smaller */
+/* Product name – matches JSX: className="productName" */
+.productName {
+  font-size: 1.1rem;
   font-weight: 600;
   color: #222;
   margin: 0 0 0.25rem 0;
@@ -244,15 +245,15 @@
   text-transform: capitalize;
 }
 
-/* Price styling */
-.productCardPrice {
+/* Product price – matches JSX: className="productPrice" */
+.productPrice {
   font-weight: 700;
   color: #ee4d2d;
   font-size: 1.2rem;
   margin: 0;
 }
 
-/* Modal and reused styles */
+/* Modal and reused styles (if you still use them elsewhere) */
 .modalOverlay {
   position: fixed;
   top: 0; left: 0;
@@ -341,7 +342,7 @@
 
 /* Responsive adjustments */
 @media (max-width: 1200px) {
-  .productsContainer {
+  .productsSection {
     width: 60vw;
     margin-left: 0;
   }
@@ -357,7 +358,7 @@
     flex-direction: column;
     height: auto;
   }
-  .productCardsGrid {
+  .productGrid {
     grid-template-columns: repeat(2, 1fr);
     gap: 1.5rem;
   }
@@ -368,25 +369,25 @@
     flex-direction: column;
     height: auto;
   }
-  .profileSection, .productsContainer {
+  .profileSection,
+  .productsSection {
     width: 100%;
     max-height: none;
     padding: 0;
     border: none;
     margin-left: 0;
   }
-  .productCardsGrid {
+  .productGrid {
     grid-template-columns: repeat(2, 1fr);
     gap: 1.5rem;
   }
 }
 
 @media (max-width: 500px) {
-  .productCardsGrid {
+  .productGrid {
     grid-template-columns: 1fr;
   }
 }
-
 
 .sizeButtonGroup {
   display: flex;
