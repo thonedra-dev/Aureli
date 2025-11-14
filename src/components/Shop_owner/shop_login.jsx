@@ -1,4 +1,3 @@
-// src/components/Shop_owner/shop_login.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './login_register.css';
@@ -72,6 +71,7 @@ const ShopLogin = ({ onLoginSuccess }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
+
       const data = await response.json();
 
       if (response.ok) {
@@ -81,22 +81,8 @@ const ShopLogin = ({ onLoginSuccess }) => {
         // Capture the shop_id from the login response
         const shopId = data.shop_id;
 
-        // Use the shop_id to fetch the shop profile (send shop_id in the body as POST)
-        const profileResponse = await fetch('http://localhost:5070/api/shop_profile', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ shop_id: shopId }),  // Send shop_id in the request body
-        });
-
-        const profileData = await profileResponse.json();
-
-        if (profileResponse.ok) {
-          // Handle the profile data
-          console.log('Shop Profile:', profileData);
-         navigate('/shop_profile', { state: { shop_id: shopId } });  // Navigate to profile page or wherever you need
-        } else {
-          setStatus({ type: 'error', message: profileData.message || 'Failed to load profile' });
-        }
+        // ✅ Only navigate and pass shop_id
+        navigate('/shop_profile', { state: { shop_id: shopId } });
       } else {
         setStatus({ type: 'error', message: data.message || 'Login failed' });
       }
