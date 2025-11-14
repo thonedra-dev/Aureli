@@ -114,7 +114,7 @@ def shop_login():
     finally:
         cursor.close()
         conn.close()
-
+        
 @app.route('/api/shop_profile', methods=['POST'])
 def shop_profile():
     try:
@@ -162,6 +162,58 @@ def shop_profile():
     finally:
         cursor.close()
         conn.close()
+
+
+@app.route('/api/shop_profile_product_cards', methods=['POST'])
+def fetch_products():
+    try:
+        # Extract shop_id from the request body (received as JSON)
+        data = request.get_json()
+        shop_id = data.get('shop_id')
+
+        if not shop_id:
+            return jsonify({"message": "Shop ID is required"}), 400
+
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        cursor.execute(''' 
+            SELECT product_id, product_name, XS, S, M, L, XL, XLL, XS_price, S_price, M_price, L_price, XL_price, XLL_price, 
+                   XS_stock, S_stock, M_stock, L_stock, XL_stock, XLL_stock, default_picture
+            FROM products
+            WHERE shop_id = %s AND is_active = 1
+        ''', (shop_id,))
+
+        products = cursor.fetchall()
+
+        # Loop through each product to calculate the default price and format the image path
+        for product in products:
+            # Find the smallest price among the available sizes
+            price_columns = ['XS_price', 'S_price', 'M_price', 'L_price', 'XL_price', 'XLL_price']
+            valid_prices = [product[col] for col in price_columns if product[col] is not None]
+
+            if valid_prices:
+                default_price = min(valid_prices)  # Select the smallest price
+            else:
+                default_price = None  # If no price is available, set to None
+
+            product['default_price'] = default_price  # Add the calculated default_price to the product data
+
+            # ✅ Just normalize the path, do NOT add http://localhost:5070
+            if product['default_picture']:
+                path = product['default_picture'].replace('\\', '/')
+                product['default_picture'] = path  # e.g. "/static/uploads/xxx.jpg"
+            else:
+                product['default_picture'] = None
+
+        cursor.close()
+        conn.close()
+
+        return jsonify(products), 200
+
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"message": f"Error fetching products: {str(e)}"}), 500
 
 
 
