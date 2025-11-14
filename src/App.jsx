@@ -4,6 +4,7 @@ import ShopRegistrationForm from "./components/Shop_owner/shop_register";
 import ShopLogin from "./components/Shop_owner/shop_login";
 import ShopProfile from "./components/Shop_owner/shop_profile"; // Import the ShopProfile component
 import ProductSetup from "./components/Shop_owner/product_setup"; // Import ProductSetup component
+import ProductDetails from "./components/Shop_owner/product_details"; // ✅ Import ProductDetails
 
 const App = () => {
   const [ownerName, setOwnerName] = useState(null);
@@ -20,7 +21,10 @@ const App = () => {
         <Route path="/shop_profile" element={<ShopProfile />} />
 
         {/* Product Setup route */}
-        <Route path="/product_setup" element={<ProductSetup />} /> {/* Added product_setup route */}
+        <Route path="/product_setup" element={<ProductSetup />} />
+
+        {/* Product Details route */}
+        <Route path="/product_details/:productId" element={<ProductDetails />} />
 
         {/* Redirect default route */}
         <Route path="/" element={<Navigate to="/shop_login" />} />
