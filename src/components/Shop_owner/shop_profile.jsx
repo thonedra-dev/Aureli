@@ -84,6 +84,29 @@ const ShopProfile = () => {
     navigate('/product_setup', { state: { shop_id: shopId } });
   };
 
+  // 🔹 On click: send product_id to backend AND navigate to product_details page
+  const handleProductCardClick = async (productId) => {
+    try {
+      const response = await fetch(
+        `http://localhost:5070/api/shop_product_details/${productId}`,
+        { method: 'GET' }
+      );
+
+      // Optional: temporary debug (you can remove later)
+      console.log(
+        `Product ID sent: ${productId}, backend status: ${response.status}`
+      );
+    } catch (err) {
+      console.error(
+        `Network error while sending product ID ${productId}:`,
+        err
+      );
+    } finally {
+      // Always navigate to the product details page
+      navigate(`/product_details/${productId}`);
+    }
+  };
+
   return (
     <main className="shopProfileContainer" aria-labelledby="profileTitle">
       <section className="profileAndProductsWrapper">
@@ -148,7 +171,18 @@ const ShopProfile = () => {
           ) : products && products.length > 0 ? (
             <div className="productGrid">
               {products.map((product) => (
-                <div key={product.product_id} className="productCard">
+                <div
+                  key={product.product_id}
+                  className="productCard"
+                  onClick={() => handleProductCardClick(product.product_id)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      handleProductCardClick(product.product_id);
+                    }
+                  }}
+                >
                   <img
                     src={
                       product.default_picture
