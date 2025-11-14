@@ -254,3 +254,128 @@
     width: 100%;
   }
 }
+
+/* ==== EDIT MODE EXTRAS ==== */
+
+/* Wrap main image + "Change image" label */
+.mainImageWrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+/* Label under image to change picture */
+.changeImageLabel {
+  display: inline-block;
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 0.35rem 0.75rem;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  background-color: #f7f7f7;
+}
+
+.changeImageLabel:hover {
+  background-color: #eee;
+}
+
+/* Text inputs in edit mode */
+.editTextInput {
+  padding: 0.4rem 0.6rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  width: 100%;
+  max-width: 320px;
+  margin-bottom: 0.25rem;
+}
+
+.editTextInput.inline {
+  display: inline-block;
+  width: auto;
+  max-width: 200px;
+  margin-left: 0.5rem;
+}
+
+/* Panel shown when editing a particular size */
+.sizeEditPanel {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background-color: #fafafa;
+  font-size: 0.9rem;
+}
+
+.sizeEditRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+}
+
+.sizeEditRow input[type="number"] {
+  width: 100px;
+  padding: 0.2rem 0.4rem;
+  font-size: 0.9rem;
+}
+
+/* When a size is currently being edited */
+.sizeButton.editing {
+  outline: 2px solid orange;
+}
+
+/* Button row under size section */
+.buttonRow {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+/* Group for edit-mode buttons */
+.editButtonsGroup {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Edit mode toggle button */
+.editModeButton {
+  background-color: #444;
+  color: #fff;
+  font-weight: bold;
+  border: none;
+  padding: 0.6rem 1rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+}
+
+.editModeButton.cancel {
+  background-color: #999;
+}
+
+/* Confirm changes button */
+.confirmChangesButton {
+  background-color: #28a745;
+  color: #fff;
+  font-weight: bold;
+  border: none;
+  padding: 0.6rem 1rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+}
+
+.confirmChangesButton:hover {
+  filter: brightness(1.05);
+}
+
+/* Keep Add to Cart style as your existing one but allow disabled look */
+.addToCartButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
