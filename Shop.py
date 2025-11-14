@@ -4,6 +4,7 @@ from datetime import datetime
 from flask_cors import CORS
 import os
 import traceback
+import json
 from werkzeug.utils import secure_filename
 
 # Import the users blueprint
@@ -274,6 +275,167 @@ def fetch_shop_product_details(product_id):
     except Exception as e:
         traceback.print_exc()
         return jsonify({"message": f"Error fetching product details: {str(e)}"}), 500
+
+
+
+@app.route('/api/product_edit_mode', methods=['POST'])
+def product_edit_mode():
+    conn = None
+    try:
+        # --- 1. Detect JSON vs multipart/form-data ---------------------
+        is_json = request.is_json
+
+        if is_json:
+            data = request.get_json() or {}
+            image_file = None  # no file in pure JSON mode
+        else:
+            # multipart/form-data: text in request.form, file in request.files
+            data = request.form.to_dict()
+            image_file = request.files.get('image_file')  # optional
+
+            # sizes may come as a JSON string in form field "sizes"
+            sizes_raw = data.get('sizes')
+            if sizes_raw:
+                try:
+                    data['sizes'] = json.loads(sizes_raw)
+                except json.JSONDecodeError:
+                    return jsonify({"message": "Invalid JSON in 'sizes' field"}), 400
+
+        target = data.get('target')          # "product" or "variant"
+        product_id = data.get('product_id')  # required for both
+
+        if target not in ('product', 'variant'):
+            return jsonify({"message": "Invalid or missing 'target' (product | variant)"}), 400
+        if not product_id:
+            return jsonify({"message": "product_id is required"}), 400
+
+        # Cast product_id to int safely
+        try:
+            product_id = int(product_id)
+        except (TypeError, ValueError):
+            return jsonify({"message": "Invalid product_id"}), 400
+
+        # --- 2. General editable fields --------------------------------
+        product_name   = data.get('product_name')    # for base product
+        default_color  = data.get('default_color')   # for base product
+        color          = data.get('color')           # for variant
+
+        # Sizes object: { "XS": { "enable": true, "price": 10, "stock": 5 }, ... }
+        sizes_updates = data.get('sizes', {}) or {}
+
+        valid_sizes = ['XS', 'S', 'M', 'L', 'XL', 'XLL']
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        updates = []
+        params = []
+
+        # --- 3. Decide table and WHERE clause ---------------------------
+        if target == 'product':
+            table = 'products'
+            where_clause = 'product_id = %s'
+            where_params = [product_id]
+
+            # General product fields
+            if product_name is not None:
+                updates.append('product_name = %s')
+                params.append(product_name)
+            if default_color is not None:
+                updates.append('default_color = %s')
+                params.append(default_color)
+
+            # Handle image upload for main product (default_picture)
+            if image_file and allowed_file(image_file.filename):
+                filename = secure_filename(image_file.filename)
+                filename = f"{datetime.now().strftime('%Y%m%d%H%M%S')}_{filename}"
+                save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                image_file.save(save_path)
+                image_path = f"/{save_path.replace(os.sep, '/')}"  # e.g. /static/uploads/...
+                updates.append('default_picture = %s')
+                params.append(image_path)
+
+        else:  # target == 'variant'
+            variance_id = data.get('variance_id')
+            if not variance_id:
+                return jsonify({"message": "variance_id is required when target='variant'"}), 400
+
+            try:
+                variance_id = int(variance_id)
+            except (TypeError, ValueError):
+                return jsonify({"message": "Invalid variance_id"}), 400
+
+            table = 'variances'
+            where_clause = 'variance_id = %s AND product_id = %s'
+            where_params = [variance_id, product_id]
+
+            # General variant fields
+            if color is not None:
+                updates.append('color = %s')
+                params.append(color)
+
+            # Handle image upload for variant (picture)
+            if image_file and allowed_file(image_file.filename):
+                filename = secure_filename(image_file.filename)
+                filename = f"{datetime.now().strftime('%Y%m%d%H%M%S')}_{filename}"
+                save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                image_file.save(save_path)
+                image_path = f"/{save_path.replace(os.sep, '/')}"
+                updates.append('picture = %s')
+                params.append(image_path)
+
+        # --- 4. Size updates (can update multiple sizes at once) --------
+        if isinstance(sizes_updates, dict):
+            for size_key, size_data in sizes_updates.items():
+                if size_key not in valid_sizes:
+                    return jsonify({"message": f"Invalid size key: {size_key}"}), 400
+
+                flag_col  = size_key              # XS, S, ...
+                price_col = f"{size_key}_price"
+                stock_col = f"{size_key}_stock"
+
+                # make sure size_data is dict
+                if not isinstance(size_data, dict):
+                    return jsonify({"message": f"Invalid data for size {size_key}"}), 400
+
+                enable = size_data.get('enable')  # True/False/None
+                price  = size_data.get('price')   # may be None
+                stock  = size_data.get('stock')   # may be None
+
+                # toggle XS / S / ... flag
+                if enable is not None:
+                    updates.append(f"{flag_col} = %s")
+                    params.append(1 if enable else 0)
+
+                # price
+                if price is not None:
+                    updates.append(f"{price_col} = %s")
+                    params.append(price)
+
+                # stock
+                if stock is not None:
+                    updates.append(f"{stock_col} = %s")
+                    params.append(stock)
+
+        if not updates:
+            return jsonify({"message": "No fields to update"}), 400
+
+        sql = f"UPDATE {table} SET " + ", ".join(updates) + " WHERE " + where_clause
+        params.extend(where_params)
+
+        cursor.execute(sql, tuple(params))
+        conn.commit()
+
+        cursor.close()
+        conn.close()
+
+        return jsonify({"message": "Product updated successfully"}), 200
+
+    except Exception as e:
+        traceback.print_exc()
+        if conn:
+            conn.rollback()
+        return jsonify({"message": f"Error updating product: {str(e)}"}), 500
 
 
 
