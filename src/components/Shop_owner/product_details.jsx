@@ -25,9 +25,18 @@ const ProductDetails = () => {
   const [editedImageFile, setEditedImageFile] = useState(null);
   const [previewImageUrl, setPreviewImageUrl] = useState(null);
 
-  // sizeEdits: { XS: { enable, price, stock }, ... }
+  // sizeEdits: { XS: { enable, price, stock }, ... }  (for EDIT mode only)
   const [sizeEdits, setSizeEdits] = useState({});
   const [editSizeKey, setEditSizeKey] = useState(null); // which size is being edited in UI
+
+  // 🔹 New variant mode states
+  const [isNewVariantMode, setIsNewVariantMode] = useState(false);
+  const [newVariantColor, setNewVariantColor] = useState('');
+  const [newVariantImageFile, setNewVariantImageFile] = useState(null);
+  const [newVariantPreviewUrl, setNewVariantPreviewUrl] = useState(null);
+  // newVariantSizes: { XS: {enable, price, stock}, ... }
+  const [newVariantSizes, setNewVariantSizes] = useState({});
+  const [newVariantSizeKey, setNewVariantSizeKey] = useState(null);
 
   const buildImageUrl = (path) => {
     if (!path) return null;
@@ -46,7 +55,7 @@ const ProductDetails = () => {
     return null;
   };
 
-  // Merge original size data + any edits
+  // Merge original size data + any edits (EDIT mode only)
   const getEffectiveSizeState = (item, size) => {
     if (!item) return { flag: 0, price: null, stock: null };
 
@@ -79,6 +88,25 @@ const ProductDetails = () => {
     }));
   };
 
+  const resetEditModeState = () => {
+    setIsEditMode(false);
+    setEditedProductName('');
+    setEditedColor('');
+    setEditedImageFile(null);
+    setPreviewImageUrl(null);
+    setSizeEdits({});
+    setEditSizeKey(null);
+  };
+
+  const resetNewVariantState = () => {
+    setIsNewVariantMode(false);
+    setNewVariantColor('');
+    setNewVariantImageFile(null);
+    setNewVariantPreviewUrl(null);
+    setNewVariantSizes({});
+    setNewVariantSizeKey(null);
+  };
+
   const fetchDetails = async (id) => {
     try {
       setLoading(true);
@@ -104,14 +132,9 @@ const ProductDetails = () => {
       // Default size: first available size of main product
       setSelectedSize(getFirstAvailableSize(productData));
 
-      // When new data arrives, exit edit mode and clear local edits
-      setIsEditMode(false);
-      setEditedProductName('');
-      setEditedColor('');
-      setEditedImageFile(null);
-      setPreviewImageUrl(null);
-      setSizeEdits({});
-      setEditSizeKey(null);
+      // When new data arrives, exit both modes and clear local edits
+      resetEditModeState();
+      resetNewVariantState();
     } catch (err) {
       setError(err.message || 'Failed to load product details');
     } finally {
@@ -138,7 +161,7 @@ const ProductDetails = () => {
     }
   };
 
-  // Old "Add to cart" action kept as-is (not used for edit)
+  // Old "Add to cart" action kept as-is
   const handleAddToCart = () => {
     if (!activeItem || !selectedSize) {
       alert('Please select a size first.');
@@ -158,6 +181,7 @@ const ProductDetails = () => {
   // 🔹 Enter / exit edit mode
   const handleToggleEditMode = () => {
     if (!activeItem || !product) return;
+    if (isNewVariantMode) return; // disabled in new-variant mode
 
     if (!isEditMode) {
       // Enter edit mode – initialize fields based on active item
@@ -176,22 +200,20 @@ const ProductDetails = () => {
       setIsEditMode(true);
     } else {
       // Discard edits
-      setIsEditMode(false);
-      setEditedProductName('');
-      setEditedColor('');
-      setEditedImageFile(null);
-      setPreviewImageUrl(null);
-      setSizeEdits({});
-      setEditSizeKey(null);
+      const baseItem = activeItem.type === 'product' ? product : activeItem.data;
+      resetEditModeState();
       // Reset selected size to first available of current active item
-      const baseItem =
-        activeItem.type === 'product' ? product : activeItem.data;
       setSelectedSize(getFirstAvailableSize(baseItem));
     }
   };
 
   const handleThumbnailClick = (itemType, id) => {
     if (!product) return;
+
+    // Leaving new-variant mode if user chooses any real thumbnail
+    if (isNewVariantMode && itemType !== 'add') {
+      resetNewVariantState();
+    }
 
     if (itemType === 'product') {
       const newItem = { type: 'product', data: product };
@@ -231,7 +253,52 @@ const ProductDetails = () => {
     }
   };
 
+  // 🔹 Click on the "+" thumbnail to start new variant mode
+  const handleAddVariantClick = () => {
+    if (!product) return;
+
+    resetEditModeState();
+    resetNewVariantState();
+
+    // Enter new variant mode
+    setIsNewVariantMode(true);
+    setNewVariantColor('');
+    setNewVariantImageFile(null);
+    setNewVariantPreviewUrl(null);
+    setNewVariantSizes({});
+    setNewVariantSizeKey(null);
+
+    // Keep main product as active item (for name display)
+    const newItem = { type: 'product', data: product };
+    setActiveItem(newItem);
+    setSelectedSize(null);
+  };
+
   const handleSizeClick = (size) => {
+    // New variant mode behavior
+    if (isNewVariantMode) {
+      setNewVariantSizeKey(size);
+      setNewVariantSizes((prev) => {
+        const prevSize = prev[size] || {};
+        return {
+          ...prev,
+          [size]: {
+            enable:
+              prevSize.enable !== undefined ? prevSize.enable : true, // default: enabled once clicked
+            price:
+              prevSize.price !== undefined && prevSize.price !== null
+                ? prevSize.price
+                : '',
+            stock:
+              prevSize.stock !== undefined && prevSize.stock !== null
+                ? prevSize.stock
+                : '',
+          },
+        };
+      });
+      return;
+    }
+
     if (!activeItem) return;
 
     const item = activeItem.data;
@@ -258,6 +325,16 @@ const ProductDetails = () => {
   const handleImageChange = (e) => {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
+
+    // New variant mode uses its own file state
+    if (isNewVariantMode) {
+      setNewVariantImageFile(file);
+      const previewUrl = URL.createObjectURL(file);
+      setNewVariantPreviewUrl(previewUrl);
+      return;
+    }
+
+    // Edit mode / main product image change
     setEditedImageFile(file);
     const previewUrl = URL.createObjectURL(file);
     setPreviewImageUrl(previewUrl);
@@ -310,11 +387,11 @@ const ProductDetails = () => {
         // if user has given price/stock but didn't explicitly set enable.
         const baseFlag = baseItem[size]; // 0 or 1
         if (
-          baseFlag === 0 &&                 // originally disabled
-          (hasPrice || hasStock) &&         // user entered something
-          out.enable === undefined          // user didn't explicitly tick checkbox
+          baseFlag === 0 &&
+          (hasPrice || hasStock) &&
+          out.enable === undefined
         ) {
-          out.enable = true;                // turn it on
+          out.enable = true;
         }
 
         // Only include sizes that actually have something to update
@@ -379,6 +456,73 @@ const ProductDetails = () => {
     }
   };
 
+  // 🔹 CREATE NEW VARIANT
+  const handleCreateVariant = async () => {
+    if (!product) return;
+
+    try {
+      if (!newVariantColor.trim()) {
+        alert('Please enter a color for the new variant.');
+        return;
+      }
+
+      if (!newVariantImageFile) {
+        alert('Please choose an image for the new variant.');
+        return;
+      }
+
+      // Normalize sizes payload
+      const normalizedSizes = {};
+      Object.entries(newVariantSizes).forEach(([size, info]) => {
+        const out = {};
+        const hasPrice =
+          info.price !== undefined && info.price !== '' && info.price !== null;
+        const hasStock =
+          info.stock !== undefined && info.stock !== '' && info.stock !== null;
+
+        if (info.enable) out.enable = true;
+        if (hasPrice) out.price = Number(info.price);
+        if (hasStock) out.stock = Number(info.stock);
+
+        if (Object.keys(out).length > 0) {
+          normalizedSizes[size] = out;
+        }
+      });
+
+      if (Object.keys(normalizedSizes).length === 0) {
+        alert('Please define at least one size (with price & stock).');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('product_id', String(product.product_id));
+      formData.append('color', newVariantColor.trim());
+      formData.append('image_file', newVariantImageFile);
+      formData.append('sizes', JSON.stringify(normalizedSizes));
+
+      const response = await fetch(`${BASE_URL}/api/add_variant`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to create variant');
+      }
+
+      alert('Variant created successfully.');
+      await fetchDetails(productId);
+
+      // After reload, try to select the newest variant (if backend returns id you could use it).
+      // For now, just stay on product; user can click the new thumbnail.
+    } catch (err) {
+      alert(`Error creating variant: ${err.message}`);
+    }
+  };
+
+  // ---------- RENDER LOGIC ----------
+
   if (loading) return <p className="loadingMessage">Loading product details...</p>;
   if (error) return <p className="errorMessage">Error: {error}</p>;
   if (!product || !activeItem) return <p>Product not found.</p>;
@@ -391,24 +535,35 @@ const ProductDetails = () => {
       ? buildImageUrl(product.default_picture)
       : buildImageUrl(currentItem.picture);
 
-  const mainImageUrl = previewImageUrl || baseMainImageUrl;
+  const mainImageUrl = isNewVariantMode
+    ? newVariantPreviewUrl || null
+    : previewImageUrl || baseMainImageUrl;
 
-  // Color depends on what is active
+  // Color depends on mode
   const currentColor =
     activeItem.type === 'product'
       ? product.default_color || '-'
       : currentItem.color || '-';
 
-  // Price & stock for the currently selected size
+  // Price & stock display
   let currentPrice = null;
   let currentStock = null;
-  if (selectedSize && currentItem) {
+
+  if (isNewVariantMode) {
+    if (newVariantSizeKey && newVariantSizes[newVariantSizeKey]) {
+      const data = newVariantSizes[newVariantSizeKey];
+      currentPrice =
+        data.price !== undefined && data.price !== '' ? data.price : null;
+      currentStock =
+        data.stock !== undefined && data.stock !== '' ? data.stock : null;
+    }
+  } else if (selectedSize && currentItem) {
     const { price, stock } = getEffectiveSizeState(currentItem, selectedSize);
     currentPrice = price;
     currentStock = stock;
   }
 
-  // Build thumbnails list (product + variants)
+  // Build thumbnails list (product + variants + PLUS)
   const thumbnails = [];
   const productThumbUrl = buildImageUrl(product.default_picture);
   if (productThumbUrl) {
@@ -432,9 +587,20 @@ const ProductDetails = () => {
     }
   });
 
+  // Special "+" thumbnail for adding variant
+  thumbnails.push({
+    type: 'add',
+    id: 'add',
+    url: null,
+    label: 'Add Variant',
+  });
+
   const currentEditSizeData =
-    editSizeKey && sizeEdits[editSizeKey]
-      ? sizeEdits[editSizeKey]
+    editSizeKey && sizeEdits[editSizeKey] ? sizeEdits[editSizeKey] : null;
+
+  const currentNewVariantSizeData =
+    newVariantSizeKey && newVariantSizes[newVariantSizeKey]
+      ? newVariantSizes[newVariantSizeKey]
       : null;
 
   return (
@@ -451,6 +617,34 @@ const ProductDetails = () => {
           <div className="mainImageAndThumbnails">
             <div className="thumbnailColumn">
               {thumbnails.map((thumb) => {
+                if (thumb.type === 'add') {
+                  const isActiveAdd = isNewVariantMode;
+                  return (
+                    <div className="thumbnailRow" key="add-variant">
+                      <button
+                        type="button"
+                        onClick={handleAddVariantClick}
+                        style={{
+                          width: '60px',
+                          height: '60px',
+                          borderRadius: '8px',
+                          border: isActiveAdd
+                            ? '2px solid blue'
+                            : '1px dashed gray',
+                          background: '#fff',
+                          cursor: 'pointer',
+                          fontSize: '32px',
+                          lineHeight: '56px',
+                          textAlign: 'center',
+                          padding: 0,
+                        }}
+                      >
+                        +
+                      </button>
+                    </div>
+                  );
+                }
+
                 const isActive =
                   (thumb.type === 'product' && activeItem.type === 'product') ||
                   (thumb.type === 'variant' &&
@@ -484,9 +678,9 @@ const ProductDetails = () => {
                   e.currentTarget.src = '/default-product.png';
                 }}
               />
-              {isEditMode && (
+              {(isEditMode || isNewVariantMode) && (
                 <label className="changeImageLabel">
-                  Change image
+                  {isNewVariantMode ? 'Choose image' : 'Change image'}
                   <input
                     type="file"
                     accept="image/*"
@@ -501,7 +695,7 @@ const ProductDetails = () => {
 
         {/* RIGHT: details */}
         <div className="detailsSection">
-          {/* Product name */}
+          {/* Product name (never edited in new variant mode) */}
           {isEditMode ? (
             <input
               className="editTextInput"
@@ -534,6 +728,14 @@ const ProductDetails = () => {
                 value={editedColor}
                 onChange={(e) => setEditedColor(e.target.value)}
               />
+            ) : isNewVariantMode ? (
+              <input
+                className="editTextInput inline"
+                type="text"
+                value={newVariantColor}
+                onChange={(e) => setNewVariantColor(e.target.value)}
+                placeholder="New variant color"
+              />
             ) : (
               currentColor
             )}
@@ -545,10 +747,34 @@ const ProductDetails = () => {
           </p>
           <div className="sizeSelection">
             {sizeKeys.map((size) => {
-              const { flag, price } = getEffectiveSizeState(
-                currentItem,
-                size
-              );
+              // New variant mode: different behavior & visuals
+              if (isNewVariantMode) {
+                const data = newVariantSizes[size] || {};
+                const isSelectedNew = newVariantSizeKey === size;
+                const isAvailableNew =
+                  data.enable &&
+                  data.price !== undefined &&
+                  data.price !== '' &&
+                  data.stock !== undefined &&
+                  data.stock !== '';
+
+                let className = 'sizeButton newVariant';
+                if (isSelectedNew) className += ' selected';
+                if (!isAvailableNew) className += ' disabled';
+
+                return (
+                  <button
+                    key={size}
+                    className={className}
+                    onClick={() => handleSizeClick(size)}
+                  >
+                    {size}
+                  </button>
+                );
+              }
+
+              // Normal / edit mode:
+              const { flag, price } = getEffectiveSizeState(currentItem, size);
 
               const isAvailable = flag && price != null && price !== '';
               const isSelected = selectedSize === size;
@@ -570,7 +796,7 @@ const ProductDetails = () => {
             })}
           </div>
 
-          {/* Inline panel for editing currently chosen size */}
+          {/* Inline panel for editing currently chosen size (EDIT MODE) */}
           {isEditMode && editSizeKey && (
             <div className="sizeEditPanel">
               <p>
@@ -579,7 +805,9 @@ const ProductDetails = () => {
               <label className="sizeEditRow">
                 <input
                   type="checkbox"
-                  checked={!!(currentEditSizeData && currentEditSizeData.enable)}
+                  checked={!!(
+                    currentEditSizeData && currentEditSizeData.enable
+                  )}
                   onChange={(e) =>
                     updateSizeEdit(editSizeKey, {
                       enable: e.target.checked,
@@ -594,7 +822,8 @@ const ProductDetails = () => {
                 <input
                   type="number"
                   value={
-                    currentEditSizeData && currentEditSizeData.price !== undefined
+                    currentEditSizeData &&
+                    currentEditSizeData.price !== undefined
                       ? currentEditSizeData.price
                       : ''
                   }
@@ -611,7 +840,8 @@ const ProductDetails = () => {
                 <input
                   type="number"
                   value={
-                    currentEditSizeData && currentEditSizeData.stock !== undefined
+                    currentEditSizeData &&
+                    currentEditSizeData.stock !== undefined
                       ? currentEditSizeData.stock
                       : ''
                   }
@@ -625,22 +855,95 @@ const ProductDetails = () => {
             </div>
           )}
 
+          {/* Inline panel for defining size (NEW VARIANT MODE) */}
+          {isNewVariantMode && newVariantSizeKey && (
+            <div className="sizeEditPanel">
+              <p>
+                Defining size: <strong>{newVariantSizeKey}</strong>
+              </p>
+              <label className="sizeEditRow">
+                <input
+                  type="checkbox"
+                  checked={!!(
+                    currentNewVariantSizeData &&
+                    currentNewVariantSizeData.enable
+                  )}
+                  onChange={(e) =>
+                    setNewVariantSizes((prev) => ({
+                      ...prev,
+                      [newVariantSizeKey]: {
+                        ...(prev[newVariantSizeKey] || {}),
+                        enable: e.target.checked,
+                      },
+                    }))
+                  }
+                />
+                <span>Available</span>
+              </label>
+
+              <label className="sizeEditRow">
+                <span>Price (RM):</span>
+                <input
+                  type="number"
+                  value={
+                    currentNewVariantSizeData &&
+                    currentNewVariantSizeData.price !== undefined
+                      ? currentNewVariantSizeData.price
+                      : ''
+                  }
+                  onChange={(e) =>
+                    setNewVariantSizes((prev) => ({
+                      ...prev,
+                      [newVariantSizeKey]: {
+                        ...(prev[newVariantSizeKey] || {}),
+                        price: e.target.value,
+                      },
+                    }))
+                  }
+                />
+              </label>
+
+              <label className="sizeEditRow">
+                <span>Stock:</span>
+                <input
+                  type="number"
+                  value={
+                    currentNewVariantSizeData &&
+                    currentNewVariantSizeData.stock !== undefined
+                      ? currentNewVariantSizeData.stock
+                      : ''
+                  }
+                  onChange={(e) =>
+                    setNewVariantSizes((prev) => ({
+                      ...prev,
+                      [newVariantSizeKey]: {
+                        ...(prev[newVariantSizeKey] || {}),
+                        stock: e.target.value,
+                      },
+                    }))
+                  }
+                />
+              </label>
+            </div>
+          )}
+
           {/* Buttons */}
           <div className="buttonRow">
-            {/* Existing Add to Cart button (for future use) */}
+            {/* Existing Add to Cart button */}
             <button
               onClick={handleAddToCart}
               className="addToCartButton"
-              disabled={isEditMode}
+              disabled={isEditMode || isNewVariantMode}
             >
               ADD TO CART
             </button>
 
-            {/* Edit mode / Confirm buttons */}
+            {/* Edit mode / New variant / Confirm buttons */}
             <div className="editButtonsGroup">
               <button
                 className={`editModeButton ${isEditMode ? 'cancel' : ''}`}
                 onClick={handleToggleEditMode}
+                disabled={isNewVariantMode}
               >
                 {isEditMode ? 'DISCARD EDIT' : 'OPEN EDIT MODE'}
               </button>
@@ -651,6 +954,15 @@ const ProductDetails = () => {
                   onClick={handleConfirmChanges}
                 >
                   CONFIRM CHANGES
+                </button>
+              )}
+
+              {isNewVariantMode && (
+                <button
+                  className="confirmChangesButton"
+                  onClick={handleCreateVariant}
+                >
+                  CREATE VARIANT
                 </button>
               )}
             </div>
