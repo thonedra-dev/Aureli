@@ -456,6 +456,46 @@ const ProductDetails = () => {
     }
   };
 
+  // 🔹 DELETE VARIANT (new)
+  const handleDeleteVariant = async (event, varianceId) => {
+    // Make sure clicking the X doesn't trigger the normal thumbnail click
+    event.stopPropagation();
+
+    if (!isEditMode || isNewVariantMode) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      'Are you sure you want to delete this variant?'
+    );
+    if (!confirmed) return;
+
+    try {
+      const response = await fetch(
+        `${BASE_URL}/api/delete_varient/${varianceId}`,
+        {
+          method: 'DELETE',
+        }
+      );
+
+      let data = {};
+      try {
+        data = await response.json();
+      } catch (e) {
+        // ignore JSON parse error if no body
+      }
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to delete variant');
+      }
+
+      alert('Variant deleted successfully.');
+      await fetchDetails(productId);
+    } catch (err) {
+      alert(`Error deleting variant: ${err.message}`);
+    }
+  };
+
   // 🔹 CREATE NEW VARIANT
   const handleCreateVariant = async () => {
     if (!product) return;
@@ -651,10 +691,14 @@ const ProductDetails = () => {
                     activeItem.type === 'variant' &&
                     activeItem.data.variance_id === thumb.id);
 
+                const showDeleteX =
+                  thumb.type === 'variant' && isEditMode && !isNewVariantMode;
+
                 return (
                   <div
                     className="thumbnailRow"
                     key={`${thumb.type}-${thumb.id}`}
+                    style={{ position: 'relative' }}
                   >
                     <img
                       src={thumb.url}
@@ -664,6 +708,33 @@ const ProductDetails = () => {
                       }
                       className={isActive ? 'selected' : ''}
                     />
+                    {showDeleteX && (
+                      <button
+                        type="button"
+                        onClick={(e) => handleDeleteVariant(e, thumb.id)}
+                        style={{
+                          position: 'absolute',
+                          top: '2px',
+                          right: '2px',
+                          width: '18px',
+                          height: '18px',
+                          borderRadius: '50%',
+                          border: 'none',
+                          backgroundColor: 'red',
+                          color: 'white',
+                          cursor: 'pointer',
+                          fontSize: '12px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          padding: 0,
+                        }}
+                        aria-label="Delete variant"
+                        title="Delete variant"
+                      >
+                        ×
+                      </button>
+                    )}
                   </div>
                 );
               })}
@@ -969,10 +1040,7 @@ const ProductDetails = () => {
           </div>
 
           {product.shop_id && (
-            <button
-              className="exploreShopButton"
-              onClick={handleExploreShop}
-            >
+            <button className="exploreShopButton" onClick={handleExploreShop}>
               EXPLORE SHOP
             </button>
           )}
