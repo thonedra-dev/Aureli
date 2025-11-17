@@ -1,0 +1,339 @@
+# path: User.py
+
+from flask import Blueprint, jsonify, request
+from flask_cors import CORS
+import mysql.connector
+import traceback
+import os
+from werkzeug.utils import secure_filename
+
+# Blueprint for users
+users_bp = Blueprint("users_bp", __name__)
+CORS(users_bp)
+
+# Filesystem base directory (folder where this User.py lives)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Filesystem folder where uploads are stored
+UPLOAD_FOLDER = os.path.join(BASE_DIR, "static", "uploads")
+
+ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif"}
+
+
+def allowed_file(filename: str) -> bool:
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+def get_db_connection():
+    return mysql.connector.connect(
+        host="localhost",
+        user="root",
+        password="your_password",  # TODO: change to your real password or use env var
+        database="aureli",
+        port=4306,
+    )
+
+
+def normalize_profile_pic_path(path: str | None) -> str | None:
+    """Ensure profile_pic is a web URL path under /static/uploads."""
+    if not path:
+        return None
+
+    # Normalize slashes
+    norm = path.replace("\\", "/")
+
+    # If DB has "uploads/filename.png", prefix with "/static/"
+    if norm.startswith("uploads/"):
+        norm = f"/static/{norm}"
+
+    # If it already starts with "/static/", keep it
+    if not norm.startswith("/static/"):
+        # Last fallback: treat it as a filename only
+        norm = f"/static/uploads/{os.path.basename(norm)}"
+
+    return norm
+
+
+# -------------------- Registration --------------------
+
+
+@users_bp.route("/api/register", methods=["POST"])
+def register_user():
+    try:
+        data = request.get_json() or {}
+
+        username = data.get("username")
+        email_address = data.get("email_address")
+        contact_number = data.get("contact_number")
+        password = data.get("password")
+        nationality = data.get("nationality")
+        gender = data.get("gender")
+        age = data.get("age")
+
+        if not username or not email_address or not password:
+            return jsonify(
+                {"message": "Username, email, and password are required"}
+            ), 400
+
+        valid_genders = ("Male", "Female", "Other")
+        if gender is not None and gender not in valid_genders:
+            return jsonify(
+                {
+                    "message": f"Invalid gender value. Expected one of {valid_genders}."
+                }
+            ), 400
+
+        if age is not None:
+            try:
+                age = int(age)
+                if age < 0:
+                    return jsonify(
+                        {"message": "Age must be a non-negative integer"}
+                    ), 400
+            except (TypeError, ValueError):
+                return jsonify({"message": "Age must be an integer"}), 400
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            SELECT user_id
+            FROM users
+            WHERE username = %s OR email_address = %s
+            """,
+            (username, email_address),
+        )
+        existing_user = cursor.fetchone()
+        if existing_user:
+            cursor.close()
+            conn.close()
+            return jsonify({"message": "Username or email already exists"}), 400
+
+        cursor.execute(
+            """
+            INSERT INTO users
+                (username, email_address, contact_number, password,
+                 nationality, gender, age)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """,
+            (
+                username,
+                email_address,
+                contact_number,
+                password,
+                nationality,
+                gender,
+                age,
+            ),
+        )
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        return jsonify({"message": "User registered successfully"}), 201
+
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"message": f"Error registering user: {str(e)}"}), 500
+
+
+# -------------------- Latest Products --------------------
+
+
+@users_bp.route("/api/products/latest", methods=["GET"])
+def fetch_latest_products():
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        category = request.args.get("category", None)
+
+        query = """
+            SELECT product_id, shop_id, product_name, category, default_color, default_picture,
+                   XS_price, S_price, M_price, L_price, XL_price, XLL_price
+            FROM products
+            WHERE is_active = 1
+        """
+
+        if category and category != "Home":
+            query += " AND category = %s"
+
+        query += " ORDER BY created_at DESC, product_name ASC"
+
+        if category and category != "Home":
+            cursor.execute(query, (category,))
+        else:
+            cursor.execute(query)
+
+        products = cursor.fetchall()
+
+        # Compute min_size/min_price and normalize picture URLs
+        for product in products:
+            sizes = ["XS", "S", "M", "L", "XL", "XLL"]
+            prices = {size: product[f"{size}_price"] for size in sizes}
+            valid_prices = {size: price for size, price in prices.items() if price is not None}
+
+            if valid_prices:
+                min_size = min(valid_prices, key=valid_prices.get)
+                min_price = valid_prices[min_size]
+                product["min_size"] = min_size
+                product["min_price"] = min_price
+            else:
+                product["min_size"] = None
+                product["min_price"] = None
+
+            if product["default_picture"]:
+                product["default_picture"] = product["default_picture"].replace("\\", "/")
+            else:
+                product["default_picture"] = None
+
+        cursor.close()
+        conn.close()
+
+        return jsonify(products), 200
+
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"message": f"Error fetching latest products: {str(e)}"}), 500
+
+
+# -------------------- Login --------------------
+
+
+@users_bp.route("/api/user_login", methods=["POST"])
+def login_user():
+    try:
+        data = request.get_json() or {}
+        username = data.get("username")
+        password = data.get("password")
+
+        if not username or not password:
+            return jsonify({"message": "Username and password are required"}), 400
+
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
+        user = cursor.fetchone()
+
+        if not user or password != user["password"]:
+            cursor.close()
+            conn.close()
+            return jsonify({"message": "Invalid credentials"}), 401
+
+        user_details = {
+            "user_id": user["user_id"],
+            "username": user["username"],
+        }
+
+        cursor.close()
+        conn.close()
+
+        return jsonify({"message": "Login successful", "user": user_details}), 200
+
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"message": f"Error logging in: {str(e)}"}), 500
+
+
+# -------------------- User Profile --------------------
+
+
+@users_bp.route("/api/user_profile", methods=["GET"])
+def user_profile():
+    try:
+        user_id = request.args.get("user_id")
+
+        if not user_id:
+            return jsonify({"error": "user_id is required"}), 400
+
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        cursor.execute(
+            """
+            SELECT username, email_address, contact_number, created_at, profile_pic
+            FROM users
+            WHERE user_id = %s
+            """,
+            (user_id,),
+        )
+
+        user = cursor.fetchone()
+
+        if not user:
+            cursor.close()
+            conn.close()
+            return jsonify({"error": "User not found"}), 404
+
+        profile_pic = normalize_profile_pic_path(user.get("profile_pic"))
+
+        user_details = {
+            "username": user["username"],
+            "email_address": user["email_address"],
+            "contact_number": user["contact_number"],
+            "created_at": user["created_at"],
+            "profile_pic": profile_pic,
+        }
+
+        cursor.close()
+        conn.close()
+
+        return jsonify(user_details), 200
+
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": f"Error fetching user profile: {str(e)}"}), 500
+
+
+# -------------------- Update Profile Picture --------------------
+
+
+@users_bp.route("/api/update_profile_pic", methods=["POST"])
+def update_profile_pic():
+    try:
+        user_id = request.form.get("user_id")
+        file = request.files.get("profile_pic")
+
+        if not file or not allowed_file(file.filename):
+            return jsonify({"message": "Invalid file type or no file provided"}), 400
+
+        if not os.path.exists(UPLOAD_FOLDER):
+            os.makedirs(UPLOAD_FOLDER)
+
+        filename = secure_filename(file.filename)
+        file_path = os.path.join(UPLOAD_FOLDER, filename)
+        file.save(file_path)
+
+        # Store a clean web path
+        file_url = f"/static/uploads/{filename}"
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.execute("SELECT * FROM users WHERE user_id = %s", (user_id,))
+        user = cursor.fetchone()
+
+        if not user:
+            cursor.close()
+            conn.close()
+            return jsonify({"message": "User not found"}), 404
+
+        cursor.execute(
+            "UPDATE users SET profile_pic = %s WHERE user_id = %s",
+            (file_url, user_id),
+        )
+        conn.commit()
+
+        cursor.close()
+        conn.close()
+
+        return jsonify(
+            {"message": "Profile picture updated successfully", "profile_pic": file_url}
+        ), 200
+
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"message": f"Error updating profile picture: {str(e)}"}), 500
