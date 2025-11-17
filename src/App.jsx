@@ -5,6 +5,10 @@ import ShopLogin from "./components/Shop_owner/shop_login";
 import ShopProfile from "./components/Shop_owner/shop_profile"; // Import the ShopProfile component
 import ProductSetup from "./components/Shop_owner/product_setup"; // Import ProductSetup component
 import ProductDetails from "./components/Shop_owner/product_details"; // ✅ Import ProductDetails
+import UserRegister from "./components/Shop_user/user_register";
+import Homepage from "./components/Shop_user/homepage";
+import UserLogin from "./components/Shop_user/user_login";
+import UserProfile from "./components/Shop_user/user_profile";
 
 const App = () => {
   const [ownerName, setOwnerName] = useState(null);
@@ -25,9 +29,21 @@ const App = () => {
 
         {/* Product Details route */}
         <Route path="/product_details/:productId" element={<ProductDetails />} />
+        <Route path="/user_profile" element={<UserProfile />} />
+        
+
+        <Route path="/user_register" element={<UserRegister />} />
+        <Route path="/home" element={<Homepage user={user} />} /> 
+        <Route
+          path="/user_login"
+          element={<UserLogin onLoginSuccess={(userDetails) => setUser(userDetails)} />} /> 
+        
+
+
 
         {/* Redirect default route */}
-        <Route path="/" element={<Navigate to="/shop_login" />} />
+        <Route path="/" element={<Navigate to="/home" />} />
+
       </Routes>
     </Router>
   );
