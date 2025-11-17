@@ -8,10 +8,13 @@ import json
 from werkzeug.utils import secure_filename
 
 # Import the users blueprint
-
+from User import users_bp  # <-- matches Users.py
 
 app = Flask(__name__)
 CORS(app)
+
+# Register the users blueprint
+app.register_blueprint(users_bp)  # you can add url_prefix here if you want
 
 UPLOAD_FOLDER = 'static/uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -30,6 +33,7 @@ def get_db_connection():
         database="aureli",
         port=4306
     )
+
 
 # Register the users blueprint
 @app.route('/api/register_shop', methods=['POST'])
@@ -607,6 +611,45 @@ def add_variant():
             conn.rollback()
         return jsonify({"message": f"Error creating variant: {str(e)}"}), 500
 
+@app.route('/api/delete_varient/<int:variance_id>', methods=['DELETE'])
+def delete_varient(variance_id):
+    """
+    Delete a single variant row from the `variances` table by its primary key (variance_id).
+    URL is called from frontend as: DELETE /api/delete_varient/<variance_id>
+    """
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Optional: check if variant exists first
+        cursor.execute(
+            "SELECT variance_id FROM variances WHERE variance_id = %s",
+            (variance_id,)
+        )
+        row = cursor.fetchone()
+        if not row:
+            cursor.close()
+            conn.close()
+            return jsonify({"message": "Variant not found"}), 404
+
+        # Delete the variant
+        cursor.execute(
+            "DELETE FROM variances WHERE variance_id = %s",
+            (variance_id,)
+        )
+        conn.commit()
+
+        cursor.close()
+        conn.close()
+
+        return jsonify({"message": "Variant deleted successfully"}), 200
+
+    except Exception as e:
+        traceback.print_exc()
+        if conn:
+            conn.rollback()
+        return jsonify({"message": f"Error deleting variant: {str(e)}"}), 500
 
 
 @app.route('/api/products', methods=['POST'])
