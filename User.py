@@ -198,6 +198,67 @@ def fetch_latest_products():
         traceback.print_exc()
         return jsonify({"message": f"Error fetching latest products: {str(e)}"}), 500
 
+# New blueprint for add-to-cart related routes
+@users_bp.route('/api/add_to_cart_product_details/<int:product_id>', methods=['GET'])
+def fetch_add_to_cart_product_details(product_id):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        # Fetch product info (including size/price information)
+        cursor.execute(''' 
+            SELECT product_id, shop_id, product_name, category,
+                   default_color, default_picture,
+                   XS, S, M, L, XL, XLL,
+                   XS_price, S_price, M_price, L_price, XL_price, XLL_price,
+                   XS_stock, S_stock, M_stock, L_stock, XL_stock, XLL_stock,
+                   created_at
+            FROM products
+            WHERE product_id = %s AND is_active = 1
+        ''', (product_id,))
+        product = cursor.fetchone()
+
+        if not product:
+            cursor.close()
+            conn.close()
+            return jsonify({"message": "Product not found"}), 404
+
+        # Normalize main product picture path
+        if product['default_picture']:
+            product['default_picture'] = product['default_picture'].replace("\\", "/")
+        else:
+            product['default_picture'] = None
+
+        # Fetch variants (size flags + prices + stocks)
+        cursor.execute(''' 
+            SELECT variance_id, product_id, color, picture,
+                   XS, S, M, L, XL, XLL,
+                   XS_price, S_price, M_price, L_price, XL_price, XLL_price,
+                   XS_stock, S_stock, M_stock, L_stock, XL_stock, XLL_stock
+            FROM variances
+            WHERE product_id = %s
+        ''', (product_id,))
+        variants = cursor.fetchall()
+
+        # Normalize variant picture paths
+        for variant in variants:
+            if variant['picture']:
+                variant['picture'] = variant['picture'].replace("\\", "/")
+            else:
+                variant['picture'] = None
+
+        cursor.close()
+        conn.close()
+
+        return jsonify({
+            "product": product,
+            "variants": variants
+        }), 200
+
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"message": f"Error fetching product details: {str(e)}"}), 500
+
 
 # -------------------- Login --------------------
 
