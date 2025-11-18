@@ -99,7 +99,11 @@ const Homepage = ({ user }) => {
   };
 
   const handleProductClick = (productId) => {
-    navigate(`/add-to-cart/${productId}`);
+    // If user is logged in, pass user_id, otherwise pass null
+    const userIdParam = userId || null;
+    navigate(`/add_to_cart/${productId}`, {
+      state: { user_id: userIdParam },  // Passing user_id as state
+    });
   };
 
   const toggleDropdown = () => {
