@@ -259,47 +259,166 @@ def fetch_add_to_cart_product_details(product_id):
         traceback.print_exc()
         return jsonify({"message": f"Error fetching product details: {str(e)}"}), 500
 
-
-# -------------------- Login --------------------
-
-
-@users_bp.route("/api/user_login", methods=["POST"])
-def login_user():
+@users_bp.route('/api/user_cart', methods=['POST', 'GET'])
+def user_cart():
     try:
-        data = request.get_json() or {}
-        username = data.get("username")
-        password = data.get("password")
+        if request.method == 'POST':
+            data = request.get_json()
 
-        if not username or not password:
-            return jsonify({"message": "Username and password are required"}), 400
+            # Extracting user inputs
+            user_id = data.get('user_id')
+            product_id = data.get('product_id')
+            variant_id = data.get('variant_id')
+            size = data.get('size')  # This is the size selected (e.g., 'S', 'M', etc.)
 
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+            # Check for mandatory fields
+            if not user_id or not product_id or not size:
+                return jsonify({"message": "user_id, product_id, and size are required"}), 400
 
-        cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
-        user = cursor.fetchone()
+            # Establish database connection
+            conn = get_db_connection()
+            cursor = conn.cursor(dictionary=True)
 
-        if not user or password != user["password"]:
+            # Initialize default picture and color
+            picture = None
+            color = None
+            size_column = None
+
+            # Check if variant_id is provided (variant selected)
+            if variant_id is None:
+                # Fetch details from products table if no variant is selected
+                cursor.execute(f"""
+                    SELECT product_name, category, default_picture, default_color,
+                           {size}_price AS price
+                    FROM products
+                    WHERE product_id = %s
+                """, (product_id,))
+                product = cursor.fetchone()
+
+                if not product:
+                    return jsonify({"message": "Product not found"}), 404
+
+                # Normalize picture path
+                if product['default_picture']:
+                    product['default_picture'] = product['default_picture'].replace("\\", "/")
+                picture = product["default_picture"]
+                color = product["default_color"]
+                size_column = size  # This is the size column (e.g., 'S', 'M', etc.)
+
+                # Insert into carts table
+                cursor.execute(f"""
+                    INSERT INTO carts (user_id, product_id, variant_id, XS, S, M, L, XL, XLL)
+                    VALUES (%s, %s, NULL, 
+                            {1 if size == 'XS' else 0}, 
+                            {1 if size == 'S' else 0}, 
+                            {1 if size == 'M' else 0}, 
+                            {1 if size == 'L' else 0}, 
+                            {1 if size == 'XL' else 0}, 
+                            {1 if size == 'XLL' else 0})
+                """, (user_id, product_id))
+
+            else:
+                # If variant_id is provided, fetch product and variant details
+                cursor.execute("""
+                    SELECT product_name, category
+                    FROM products
+                    WHERE product_id = %s
+                """, (product_id,))
+                product = cursor.fetchone()
+
+                if not product:
+                    return jsonify({"message": "Product not found"}), 404
+
+                cursor.execute(f"""
+                    SELECT picture, color, 
+                           {size}_price AS price
+                    FROM variances
+                    WHERE variance_id = %s
+                """, (variant_id,))
+                variant = cursor.fetchone()
+
+                if not variant:
+                    return jsonify({"message": "Variant not found"}), 404
+
+                # Normalize picture path for the variant
+                if variant['picture']:
+                    variant['picture'] = variant['picture'].replace("\\", "/")
+                picture = variant["picture"]
+                color = variant["color"]
+                size_column = size  # This is the size column (e.g., 'S', 'M', etc.)
+
+                # Insert into carts table for variant
+                cursor.execute(f"""
+                    INSERT INTO carts (user_id, product_id, variant_id, XS, S, M, L, XL, XLL)
+                    VALUES (%s, %s, %s, 
+                            {1 if size == 'XS' else 0}, 
+                            {1 if size == 'S' else 0}, 
+                            {1 if size == 'M' else 0}, 
+                            {1 if size == 'L' else 0}, 
+                            {1 if size == 'XL' else 0}, 
+                            {1 if size == 'XLL' else 0})
+                """, (user_id, product_id, variant_id))
+
+            # Commit the transaction
+            conn.commit()
+
+            # Closing the database connection
             cursor.close()
             conn.close()
-            return jsonify({"message": "Invalid credentials"}), 401
 
-        user_details = {
-            "user_id": user["user_id"],
-            "username": user["username"],
-        }
+            # Return response with the requested information
+            response = {
+                "product_name": product["product_name"],
+                "category": product["category"],
+                "picture": picture if picture else None,
+                "color": color,
+                "price": product.get(f"{size}_price", None),  # Get the price for the selected size
+                "size_column": size_column  # The size column name (e.g., 'XS', 'S', etc.)
+            }
 
-        cursor.close()
-        conn.close()
+            return jsonify(response), 200
 
-        return jsonify({"message": "Login successful", "user": user_details}), 200
+        elif request.method == 'GET':
+            # Handle GET request to fetch all cart items and their details based on user_id
+            user_id = request.args.get('user_id')
+
+            if not user_id:
+                return jsonify({"message": "user_id is required"}), 400
+
+            # Fetch cart items
+            conn = get_db_connection()
+            cursor = conn.cursor(dictionary=True)
+
+            cursor.execute("""
+                SELECT c.cart_id, c.product_id, c.variant_id, c.XS, c.S, c.M, c.L, c.XL, c.XLL,
+                       p.product_name, p.category, p.default_picture, p.default_color,
+                       p.XS_price, p.S_price, p.M_price, p.L_price, p.XL_price, p.XLL_price,
+                       v.picture AS variant_picture, v.color AS variant_color,
+                       v.XS_price AS var_XS_price, v.S_price AS var_S_price, 
+                       v.M_price AS var_M_price, v.L_price AS var_L_price, 
+                       v.XL_price AS var_XL_price, v.XLL_price AS var_XLL_price
+                FROM carts c
+                JOIN products p ON c.product_id = p.product_id
+                LEFT JOIN variances v ON c.variant_id = v.variance_id
+                WHERE c.user_id = %s
+            """, (user_id,))
+
+            cart_items = cursor.fetchall()
+
+            # Normalize image paths for cart items
+            for item in cart_items:
+                if item['default_picture']:
+                    item['default_picture'] = item['default_picture'].replace("\\", "/")
+                if item['variant_picture']:
+                    item['variant_picture'] = item['variant_picture'].replace("\\", "/")
+
+            cursor.close()
+            conn.close()
+
+            return jsonify(cart_items), 200
 
     except Exception as e:
-        traceback.print_exc()
-        return jsonify({"message": f"Error logging in: {str(e)}"}), 500
-
-
-# -------------------- User Profile --------------------
+        return jsonify({"message": f"Error occurred: {str(e)}"}), 500
 
 
 @users_bp.route("/api/user_profile", methods=["GET"])
@@ -348,6 +467,49 @@ def user_profile():
         traceback.print_exc()
         return jsonify({"error": f"Error fetching user profile: {str(e)}"}), 500
 
+
+# -------------------- User Profile --------------------
+
+
+
+
+# -------------------- Login --------------------
+
+
+@users_bp.route("/api/user_login", methods=["POST"])
+def login_user():
+    try:
+        data = request.get_json() or {}
+        username = data.get("username")
+        password = data.get("password")
+
+        if not username or not password:
+            return jsonify({"message": "Username and password are required"}), 400
+
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
+        user = cursor.fetchone()
+
+        if not user or password != user["password"]:
+            cursor.close()
+            conn.close()
+            return jsonify({"message": "Invalid credentials"}), 401
+
+        user_details = {
+            "user_id": user["user_id"],
+            "username": user["username"],
+        }
+
+        cursor.close()
+        conn.close()
+
+        return jsonify({"message": "Login successful", "user": user_details}), 200
+
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"message": f"Error logging in: {str(e)}"}), 500
 
 # -------------------- Update Profile Picture --------------------
 
