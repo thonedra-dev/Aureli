@@ -145,13 +145,37 @@ const AddToCart = () => {
       return;
     }
 
-    console.log('Adding to cart:', {
-      userId,
-      productId,
-      color: selectedVariant.color,
-      size: selectedSize,
-      quantity: 1,
-      price: getPriceForSize(selectedSize)
+    // Check if user_id is null, if yes, navigate to user_login route
+    if (!userId) {
+      alert('Please log in first to add products to your cart.');
+      navigate('/user_login');
+      return;
+    }
+
+    // Prepare data to send to backend
+    const cartData = {
+      user_id: userId,
+      product_id: productId,
+      variant_id: selectedVariant?.type === 'variant' ? selectedVariant.variantData.variance_id : null,
+      size: selectedSize
+    };
+
+    // Send data to backend to add product to cart
+    fetch('http://localhost:5070/api/user_cart', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(cartData),
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.message) {
+        alert(data.message);
+      }
+    })
+    .catch((error) => {
+      alert('There was an error adding the product to the cart.');
     });
 
     alert('Product added to cart successfully!');
@@ -275,9 +299,7 @@ const AddToCart = () => {
                 return (
                   <button
                     key={size}
-                    className={`size-option ${selectedSize === size ? 'selected' : ''} ${
-                      !isAvailable ? 'unavailable' : ''
-                    }`}
+                    className={`size-option ${selectedSize === size ? 'selected' : ''} ${!isAvailable ? 'unavailable' : ''}`}
                     onClick={() => isAvailable && setSelectedSize(size)}
                     disabled={!isAvailable}
                   >

@@ -9,6 +9,7 @@ const UserProfile = () => {
   const userId = state?.user_id;
 
   const [userDetails, setUserDetails] = useState(null);
+  const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [profilePic, setProfilePic] = useState(null);
@@ -32,6 +33,33 @@ const UserProfile = () => {
       setLoading(false);
     }
   };
+
+  const fetchCartItems = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/user_cart?user_id=${userId}`);
+      const data = await res.json();
+      console.log('Cart items response:', data);  // Check this in console!
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to fetch cart items');
+      }
+
+      setCartItems(data);
+    } catch (err) {
+      console.error(err);
+      setError('Failed to fetch cart items');
+    }
+  };
+
+  const getItemPrice = (item) => {
+  if (item.XS) return item.var_XS_price || item.XS_price || '0.00';
+  if (item.S) return item.var_S_price || item.S_price || '0.00';
+  if (item.M) return item.var_M_price || item.M_price || '0.00';
+  if (item.L) return item.var_L_price || item.L_price || '0.00';
+  if (item.XL) return item.var_XL_price || item.XL_price || '0.00';
+  if (item.XLL) return item.var_XLL_price || item.XLL_price || '0.00';
+  return '0.00';
+};
 
   const handleProfilePicChange = async (e) => {
     const file = e.target.files[0];
@@ -67,9 +95,20 @@ const UserProfile = () => {
     }
   };
 
+  const getSelectedSize = (item) => {
+    if (item.XS) return 'XS';
+    if (item.S) return 'S';
+    if (item.M) return 'M';
+    if (item.L) return 'L';
+    if (item.XL) return 'XL';
+    if (item.XLL) return 'XLL';
+    return 'Unknown';
+  };
+
   useEffect(() => {
     if (userId) {
       fetchUserDetails();
+      fetchCartItems();
     }
   }, [userId]);
 
@@ -82,6 +121,32 @@ const UserProfile = () => {
     <div className="main-container">
       <div className="cart-container">
         <div className="all-items">All Items</div>
+        <div className="cart-items">
+          {cartItems.length > 0 ? (
+            cartItems.map((item, index) => (
+              <div className="cart-item" key={index}>
+                <div className="cart-item-image">
+                  <img
+                    src={`${API_BASE}${item.variant_picture || item.default_picture}`}
+                    alt={item.product_name}
+                    className="cart-item-img"
+                    onError={(e) => {
+                      e.target.src = `${API_BASE}/static/uploads/default.jpeg`;
+                    }}
+                  />
+                </div>
+                <div className="cart-item-details">
+                  <p>{item.product_name} / {getSelectedSize(item)}</p>
+                  <p>{item.category}</p>
+                  <p>Lowest Price in 30 Days</p>
+                  <p className="price">RM {getItemPrice(item)}</p>
+                </div>
+              </div>
+            ))
+          ) : (
+            <p>No items in your cart</p>
+          )}
+        </div>
       </div>
 
       <div className="user-summary-container">
@@ -129,7 +194,6 @@ const UserProfile = () => {
                   <td><strong>Username:</strong></td>
                   <td>{userDetails.username}</td>
                 </tr>
-                {/* User ID row removed as requested */}
                 <tr>
                   <td><strong>Email Address:</strong></td>
                   <td>{userDetails.email_address}</td>
