@@ -9,6 +9,8 @@ import UserRegister from "./components/Shop_user/user_register";
 import Homepage from "./components/Shop_user/homepage";
 import UserLogin from "./components/Shop_user/user_login";
 import UserProfile from "./components/Shop_user/user_profile";
+import AddToCart from './components/Shop_user/add_to_cart';
+
 
 const App = () => {
   const [ownerName, setOwnerName] = useState(null);
@@ -39,7 +41,7 @@ const App = () => {
           element={<UserLogin onLoginSuccess={(userDetails) => setUser(userDetails)} />} /> 
         
 
-
+         <Route path="/add_to_cart/:productId" element={<AddToCart />} /> {/* Route for AddToCart page */}
 
         {/* Redirect default route */}
         <Route path="/" element={<Navigate to="/home" />} />
