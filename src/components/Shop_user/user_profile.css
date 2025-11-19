@@ -4,7 +4,7 @@
   justify-content: space-between;
   padding: 20px;
   height: 100vh;
-  background-color: #f2f2f2; /* Light grey background for page */
+  background-color: #f2f2f2;
   overflow: hidden;
 }
 
@@ -12,82 +12,109 @@
 .cart-container {
   width: 65%;
   height: 100%;
-  overflow-y: auto; /* Make this scrollable */
+  overflow-y: auto;
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
 .select-all-container {
   display: flex;
   align-items: center;
-  margin-bottom: 10px;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #e0e0e0;
 }
 
 .select-all-checkbox {
-  width: 20px;
-  height: 20px;
-  accent-color: black; /* Black checkmark for select all */
-  margin-right: 10px;
+  width: 18px;
+  height: 18px;
+  accent-color: black;
+  margin-right: 12px;
+  cursor: pointer;
+}
+
+.select-all-label {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
 }
 
 .all-items {
-  font-size: 18px;
+  font-size: 24px;
   font-weight: bold;
-  padding: 10px 0;
-  margin-bottom: 10px;
+  padding: 15px 0;
+  margin-bottom: 20px;
+  color: #333;
+  border-bottom: 2px solid #000;
+}
+
+.cart-items {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
 }
 
 .cart-item {
   display: flex;
-  justify-content: space-between;
-  margin-bottom: 20px;
-  padding: 10px;
-  background-color: #fff; /* Solid white background for the cards */
-  border: 1px solid #ddd;
-  border-radius: 0px; /* Sharp, rectangular corners */
-  align-items: center;
+  align-items: flex-start;
+  padding: 20px;
+  background-color: #fff;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  gap: 20px;
 }
 
-.product-info {
-  display: flex;
-  gap: 10px;
+.cart-item:hover {
+  border-color: #000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.product-info img {
-  width: 100px;
-  height: 100px;
+.cart-item-image {
+  flex-shrink: 0;
+}
+
+.cart-item-img {
+  width: 120px;
+  height: 120px;
   object-fit: cover;
   border-radius: 8px;
+  border: 1px solid #ddd;
 }
 
-.product-info div {
+.cart-item-details {
   flex: 1;
-}
-
-.product-info h4 {
-  font-size: 16px;
-  font-weight: bold;
-}
-
-.price-section {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 10px;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cart-item-details p:first-child {
+  font-size: 18px;
+  font-weight: bold;
+  color: #333;
+  margin: 0;
+}
+
+.cart-item-details p:nth-child(2) {
+  font-size: 14px;
+  color: #666;
+  margin: 0;
+}
+
+.cart-item-details p:nth-child(3) {
+  font-size: 12px;
+  color: #888;
+  margin: 0;
 }
 
 .price {
-  color: gold;
-  font-size: 18px;
+  color: #000;
+  font-size: 20px;
   font-weight: bold;
-}
-
-.select-box {
-  margin-top: 10px;
-}
-
-.select-box input {
-  width: 20px;
-  height: 20px;
-  accent-color: black; /* Black checkmark when selected */
+  margin: 0;
 }
 
 /* Right Side: User Info & Order Summary */
@@ -104,113 +131,22 @@
   gap: 20px;
   position: sticky;
   top: 0;
-  align-items: center; /* Center the content */
-}
-
-/* Profile Picture Styling (old classes – kept) */
-.user-pic {
-  width: 150px; /* Increased size for profile picture */
-  height: 150px;
-  background-color: #e0e0e0;
-  display: flex;
-  justify-content: center;
   align-items: center;
-  border-radius: 50%;
-  margin-bottom: 20px;
-  position: relative; /* To position the file input on top */
-}
-
-.user-pic input[type="file"] {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  opacity: 0; /* Hides the file input button */
-  cursor: pointer; /* Make it clickable */
-}
-
-.placeholder-pic {
-  font-size: 14px;
-  color: #777;
-}
-
-.profile-pic-image {
-  width: 200px; /* Increased size for profile picture */
-  height: 150px;
-  border-radius: 65%;
-}
-
-/* Customize the file input button */
-.file-input {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  opacity: 0;
-  cursor: pointer;
-}
-
-.user-table table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.user-table td {
-  padding: 8px;
-  border: 1px solid #ddd;
-}
-
-.user-table td:first-child {
-  font-weight: bold;
-}
-
-.order-summary {
-  background-color: #f9f9f9;
-  padding: 20px;
+  background-color: #fff;
+  padding: 25px;
   border-radius: 8px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
-.order-summary h3 {
-  margin-bottom: 10px;
-}
-
-.summary-details {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 10px;
-  max-height: 200px; /* Set your desired height */
-  overflow-y: auto;  /* Allows scrolling if content overflows */
-  padding-right: 10px;  /* Optional: Adds space on the right if scrollbar appears */
-}
-
-/* Styling for the button */
-.summary-details button {
-  padding: 10px 20px;
-  background-color: black;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-.summary-details button:hover {
-  background-color: #444;
-}
-
-/* ==================================================================== */
-/* NEW STYLES for profile picture + update button + loading/error text  */
-/* ==================================================================== */
-
-/* Container used by React: <div className="user-pic-container"> */
+/* Profile Picture Styling */
 .user-pic-container {
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
-/* Circular frame around the profile picture */
 .profile-pic-frame {
-  width: 140px;        /* avatar size */
+  width: 140px;
   height: 140px;
   border-radius: 50%;
   padding: 4px;
@@ -221,10 +157,9 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  cursor: pointer;     /* click to trigger update mode */
+  cursor: pointer;
 }
 
-/* Actual image, kept small & nicely cropped */
 .profile-pic {
   width: 100%;
   height: 100%;
@@ -232,17 +167,15 @@
   display: block;
 }
 
-/* Wrapper for the "Update Profile Picture" button */
 .update-btn {
-  margin-top: 12px;
+  margin-top: 15px;
 }
 
-/* Formal-looking update button */
 .update-btn button {
-  padding: 8px 22px;
-  border-radius: 999px;
+  padding: 10px 25px;
+  border-radius: 25px;
   border: none;
-  background-color: #1f2933;  /* dark, formal */
+  background-color: #1f2933;
   color: #ffffff;
   font-size: 0.9rem;
   font-weight: 600;
@@ -250,30 +183,130 @@
   text-transform: uppercase;
   cursor: pointer;
   box-shadow: 0 2px 4px rgba(15, 23, 42, 0.2);
-  transition:
-    background-color 0.15s ease,
-    transform 0.1s ease,
-    box-shadow 0.1s ease;
+  transition: all 0.3s ease;
 }
 
 .update-btn button:hover {
   background-color: #111827;
-  box-shadow: 0 3px 8px rgba(15, 23, 42, 0.35);
+  box-shadow: 0 4px 8px rgba(15, 23, 42, 0.35);
 }
 
 .update-btn button:active {
   transform: translateY(1px);
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.25);
 }
 
-/* Loading / error text used by React */
+/* User Table */
+.user-table {
+  background-color: #fff;
+  padding: 25px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.user-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.user-table td {
+  padding: 12px 8px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.user-table tr:last-child td {
+  border-bottom: none;
+}
+
+.user-table td:first-child {
+  font-weight: bold;
+  color: #333;
+  width: 40%;
+}
+
+.user-table td:last-child {
+  color: #666;
+}
+
+/* Order Summary */
+.order-summary {
+  background-color: #fff;
+  padding: 25px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  position: sticky;
+  top: 400px;
+}
+
+.order-summary h3 {
+  margin-bottom: 20px;
+  font-size: 20px;
+  font-weight: bold;
+  color: #333;
+  border-bottom: 2px solid #000;
+  padding-bottom: 10px;
+}
+
+.summary-details {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.summary-details p {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+}
+
+.summary-details button {
+  padding: 15px 30px;
+  background-color: #000;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 600;
+  width: 100%;
+  transition: all 0.3s ease;
+}
+
+.summary-details button:hover {
+  background-color: #333;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Loading / error text */
 .loading-text,
 .error-text {
   padding: 20px;
   text-align: center;
-  font-size: 14px;
+  font-size: 16px;
+  font-weight: 500;
 }
 
 .error-text {
   color: #b91c1c;
+}
+
+/* Scrollbar styling */
+.cart-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.cart-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.cart-container::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.cart-container::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
 }

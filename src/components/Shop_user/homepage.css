@@ -387,8 +387,9 @@ body {
 }
 
 .comment-icon-container:hover {
-  background-color: transparent;
+  color: #222;
 }
+
 
 .comment-icon-container:active {
   color: #999;
@@ -439,153 +440,209 @@ body {
   border-radius: 8px;
 }
 
-/* Modal Overlay */
-.comment-modal-overlay {
+/* =========================================
+   NEW REVIEW MODAL STYLES
+   ========================================= */
+
+/* The dark background overlay */
+.review-modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
-  width: 100vw;
-  height: 100vh;
-  background-color: rgba(0, 0, 0, 0.5);
-  z-index: 9999;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6); /* Darker dim */
+  backdrop-filter: blur(2px); /* Slight blur effect */
+  z-index: 2000; /* Higher than navbar */
   display: flex;
   justify-content: center;
   align-items: center;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.3s ease, visibility 0s 0.3s;
-}
-
-.comment-modal-overlay.show {
   opacity: 1;
   visibility: visible;
-  transition: opacity 0.3s ease;
 }
 
-.comment-modal-content {
-  background: white;
-  max-width: 600px;
-  width: 90%;
-  max-height: 90vh;
-  overflow-y: auto;
-  padding: 1.5rem 2rem;
-  border-radius: 8px;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-  position: relative;
+/* The white box */
+.review-modal-content {
+  background: #fff;
+  width: 550px; /* Wider box */
+  max-width: 90%;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: fadeInScale 0.2s ease-out;
 }
 
-/* Close Button for Modal */
-.comment-modal-close-btn {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  background: none;
-  border: none;
-  font-size: 20px;
-  cursor: pointer;
+@keyframes fadeInScale {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+/* Header: Title and Step count */
+.review-modal-header {
+  padding: 20px 30px;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.review-modal-header h2 {
+  margin: 0;
+  font-size: 1.4rem;
+  color: #222;
+}
+
+.step-indicator {
+  font-size: 0.9rem;
   color: #888;
+  font-weight: 600;
 }
 
-/* Comment Textarea */
-.comment-textarea {
-  width: 100%;
-  height: 100px;
+/* Body: Content Area */
+.review-modal-body {
+  padding: 30px;
+  min-height: 300px; /* Ensure consistent height */
+}
+
+/* Groups */
+.review-group {
+  margin-bottom: 20px;
+}
+
+.review-group label {
+  display: block;
+  font-weight: 700;
   margin-bottom: 10px;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
+  color: #333;
+  font-size: 0.95rem;
+}
+
+/* Split inputs (Height/Weight) */
+.review-split-group {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.half {
+  flex: 1;
+}
+
+/* Inputs & Textarea */
+.review-input,
+.review-file-input,
+.review-textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 1rem;
+  box-sizing: border-box;
+  font-family: inherit;
+  color: #000; /* Ensure text is black */
+}
+
+.review-textarea {
+  height: 100px;
   resize: none;
 }
 
-/* File Input for Comment Picture */
-.comment-file-input {
-  margin-bottom: 10px;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
+.review-input:focus,
+.review-textarea:focus {
+  border-color: #000;
+  outline: none;
 }
 
-/* Size Selection Buttons */
-.size-selection-buttons {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 15px;
-}
-
-.size-selection-buttons button {
-  padding: 10px 20px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
+/* Stars */
+.star-rating-container {
+  font-size: 2rem;
   cursor: pointer;
-  background-color: transparent;
-  color: #222;
 }
 
-.size-selection-buttons button.selected {
-  background-color: #ff4081;
-  color: white;
+.review-star {
+  color: #ddd;
+  margin-right: 5px;
+  transition: color 0.2s;
 }
 
-/* Fit Selection Buttons */
-.fit-selection-buttons {
+.review-star.filled {
+  color: #ffc107; /* Gold color */
+}
+
+/* Option Buttons (Fit, Size) */
+.fit-options, .size-options {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
-  margin-bottom: 15px;
 }
 
-.fit-selection-buttons button {
-  padding: 10px 20px;
+.option-btn {
+  background: #fff;
   border: 1px solid #ccc;
-  border-radius: 5px;
+  padding: 10px 20px;
+  border-radius: 30px; /* Pill shape */
   cursor: pointer;
-  background-color: transparent;
-  color: #222;
+  font-weight: 500;
+  color: #444;
+  transition: all 0.2s;
 }
 
-.fit-selection-buttons button.selected {
-  background-color: #ff4081;
-  color: white;
+.option-btn:hover {
+  border-color: #000;
 }
 
-/* Submit Button */
-.comment-submit-btn {
-  background-color: #ff4081;
-  color: white;
-  padding: 10px;
+.option-btn.active {
+  background-color: #000;
+  color: #fff;
+  border-color: #000;
+}
+
+.small-btn {
+  min-width: 50px;
+  text-align: center;
+  padding: 10px 15px;
+}
+
+/* Footer: Action Buttons */
+.review-modal-footer {
+  padding: 20px 30px;
+  background-color: #f9f9f9;
+  border-top: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+}
+
+.modal-btn {
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.modal-btn.secondary {
+  background: #fff;
+  border: 1px solid #ccc;
+  color: #333;
+}
+
+.modal-btn.secondary:hover {
+  background: #f0f0f0;
+}
+
+.modal-btn.primary {
+  background: #222;
+  color: #fff;
   border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 16px;
 }
 
-.comment-submit-btn:hover {
-  background-color: #e02b6f;
+.modal-btn.primary:hover {
+  background: #000;
 }
 
-/* Icon Badge (Wishlist count) */
-.icon-badge {
-  position: absolute;
-  top: -5px;
-  right: -5px;
-  background-color: red;
-  color: white;
-  font-size: 12px;
-  font-weight: bold;
-  border-radius: 50%;
-  width: 18px;
-  height: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.submit-btn {
+  background-color: #ff4081 !important; /* Specific highlight for submit */
 }
-
-.star {
-  font-size: 24px;  /* Adjust size of the stars */
-  cursor: pointer;
-  color: gray;      /* Default color of stars */
-}
-
-.star.selected {
-  color: gold;      /* Highlight selected stars */
-}
-

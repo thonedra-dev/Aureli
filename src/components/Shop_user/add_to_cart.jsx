@@ -12,6 +12,10 @@ const AddToCart = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
+  // NEW: State for comments
+  const [comments, setComments] = useState([]);
+  const [commentsLoading, setCommentsLoading] = useState(true);
+  
   // State for selected options
   const [selectedVariant, setSelectedVariant] = useState(null);
   const [selectedSize, setSelectedSize] = useState('');
@@ -50,8 +54,31 @@ const AddToCart = () => {
       }
     };
 
+    // NEW: Fetch comments function
+    const fetchComments = async () => {
+      try {
+        setCommentsLoading(true);
+        const response = await fetch(
+          `http://localhost:5070/api/product_comments/${productId}`
+        );
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch comments');
+        }
+        
+        const data = await response.json();
+        setComments(data.comments || []);
+      } catch (err) {
+        console.error('Error fetching comments:', err);
+        setComments([]);
+      } finally {
+        setCommentsLoading(false);
+      }
+    };
+
     if (productId) {
       fetchProductDetails();
+      fetchComments(); // NEW: Fetch comments when page loads
     }
   }, [productId]);
 
@@ -134,6 +161,16 @@ const AddToCart = () => {
     return numPrice.toFixed(2);
   };
 
+  // Format date
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString();
+  };
+
+  // Render star rating
+  const renderStars = (rating) => {
+    return '★'.repeat(rating) + '☆'.repeat(5 - rating);
+  };
+
   const handleAddToCart = () => {
     if (!selectedSize) {
       alert('Please select a size');
@@ -179,6 +216,32 @@ const AddToCart = () => {
     });
 
     alert('Product added to cart successfully!');
+  };
+
+  // Handle Explore Shop button click
+  const handleExploreShop = () => {
+    if (!selectedVariant) {
+      alert('Please select a product variant first.');
+      return;
+    }
+
+    // Get shop_id from selected variant or main product
+    const shopId = selectedVariant.type === 'variant' 
+      ? selectedVariant.variantData.shop_id 
+      : selectedVariant.productData.shop_id;
+
+    if (!shopId) {
+      alert('Shop information not available.');
+      return;
+    }
+
+    // Navigate to user_visiting_shop_profile route with shop_id
+    navigate('/user_visiting_shop_profile', {
+      state: { 
+        shop_id: shopId,
+        user_id: userId // Pass user_id along if available
+      }
+    });
   };
 
   if (loading) {
@@ -323,11 +386,75 @@ const AddToCart = () => {
 
           {/* Explore Shop Button */}
           <div className="explore-shop-section">
-            <button className="explore-shop-btn">
+            <button 
+              className="explore-shop-btn"
+              onClick={handleExploreShop}
+            >
               EXPLORE SHOP
             </button>
           </div>
         </div>
+      </div>
+
+      {/* MODIFIED: Comments Section */}
+      <div className="comments-section">
+        <h2 className="comments-title">Customer Reviews</h2>
+        
+        {commentsLoading ? (
+          <div className="loading-comments">Loading reviews...</div>
+        ) : comments.length === 0 ? (
+          <div className="no-comments">No reviews yet. Be the first to review this product!</div>
+        ) : (
+          <div className="comments-list">
+            {comments.map((comment) => (
+              <div key={comment.comment_id} className="comment-card">
+                {/* Left side - Content */}
+                <div className="comment-content">
+                  <div className="comment-header">
+                    <div className="user-info">
+                      <div className="username">User #{comment.user_id}</div>
+                      <div className="comment-date">{formatDate(comment.created_at)}</div>
+                    </div>
+                  </div>
+                  
+                  <div className="rating-stars">{renderStars(comment.rating)}</div>
+                  
+                  <div className="comment-body">
+                    <p className="comment-text">{comment.text}</p>
+                    
+                    <div className="comment-meta">
+                      {comment.fit_label !== "N/A" && (
+                        <span className="meta-item">Overall Fit: {comment.fit_label}</span>
+                      )}
+                      {comment.size_label !== "N/A" && (
+                        <span className="meta-item">Size: {comment.size_label}</span>
+                      )}
+                      {comment.height && (
+                        <span className="meta-item">Height: {comment.height}cm</span>
+                      )}
+                      {comment.weight && (
+                        <span className="meta-item">Weight: {comment.weight}kg</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Right side - Image only if exists */}
+                {comment.comment_pic && (
+                  <div className="comment-image">
+                    <img 
+                      src={`http://localhost:5070/${comment.comment_pic}`} 
+                      alt="Review" 
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
