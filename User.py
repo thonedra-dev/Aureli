@@ -5,6 +5,7 @@ from flask_cors import CORS
 import mysql.connector
 import traceback
 import os
+import uuid
 from werkzeug.utils import secure_filename
 
 # Blueprint for users
@@ -197,6 +198,118 @@ def fetch_latest_products():
     except Exception as e:
         traceback.print_exc()
         return jsonify({"message": f"Error fetching latest products: {str(e)}"}), 500
+    
+# ... (Your existing code: Imports, UPLOAD_FOLDER, allowed_file, get_db_connection, etc.)
+
+# -------------------- Submit Comment --------------------
+
+@users_bp.route('/api/submit_comment', methods=['POST'])
+def submit_comment():
+    try:
+        # Switch to form-data handling for image upload
+        user_id = request.form.get('user_id')
+        product_id = request.form.get('product_id')
+        text = request.form.get('text')
+        weight = request.form.get('weight')
+        height = request.form.get('height')
+        S = request.form.get('S', 0)
+        M = request.form.get('M', 0)
+        L = request.form.get('L', 0)
+        XL = request.form.get('XL', 0)
+        XLL = request.form.get('XLL', 0)
+        small = request.form.get('small', 0)
+        true_to_size = request.form.get('true_to_size', 0)
+        large = request.form.get('large', 0)
+        rating = request.form.get('rating', 0)
+
+        # Handle file upload - SAVE TO DISK instead of reading binary
+        file = request.files.get('comment_pic')
+        comment_pic_path = None
+        
+        if file and file.filename:
+            # Create uploads directory if it doesn't exist
+            upload_folder = 'static/uploads'
+            os.makedirs(upload_folder, exist_ok=True)
+            
+            # Generate unique filename
+            filename = secure_filename(file.filename)
+            unique_filename = f"{uuid.uuid4().hex}_{filename}"
+            file_path = os.path.join(upload_folder, unique_filename)
+            
+            # Save file to disk
+            file.save(file_path)
+            comment_pic_path = file_path  # Store the path, not the binary data
+
+        if not user_id or not product_id or not text:
+            return jsonify({"message": "User ID, Product ID, and Comment Text are required"}), 400
+
+        print(f"Data received: user_id={user_id}, product_id={product_id}, text={text}")
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.execute(''' 
+            INSERT INTO comments 
+            (user_id, product_id, text, weight, height, S, M, L, XL, XLL, small, true_to_size, large, rating, comment_pic, created_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+        ''', (user_id, product_id, text, weight, height, S, M, L, XL, XLL, small, true_to_size, large, rating, comment_pic_path))  # Store path instead of binary
+
+        conn.commit()
+        comment_id = cursor.lastrowid
+
+        print(f"Comment inserted with ID: {comment_id}")
+
+        cursor.close()
+        conn.close()
+
+        return jsonify({
+            "message": "Comment submitted successfully!",
+            "comment_id": comment_id
+        }), 201
+
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"message": f"Error submitting comment: {str(e)}"}), 500
+
+@users_bp.route('/api/product_comments/<int:product_id>', methods=['GET'])
+def fetch_product_comments(product_id):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        cursor.execute(''' 
+            SELECT comment_id, user_id, text, weight, height,
+                   S, M, L, XL, XLL,
+                   small, true_to_size, large,
+                   rating, comment_pic, created_at
+            FROM comments
+            WHERE product_id = %s
+            ORDER BY created_at DESC
+        ''', (product_id,))
+        comments = cursor.fetchall()
+
+        for c in comments:
+            # --- size label from binary columns ---
+            c['size_label'] = next((k for k in ["S", "M", "L", "XL", "XLL"] if c.get(k) == 1), "N/A")
+
+            # --- fit label from binary columns ---
+            if c.get('small') == 1:
+                c['fit_label'] = "Small"
+            elif c.get('true_to_size') == 1:
+                c['fit_label'] = "True to Size"
+            elif c.get('large') == 1:
+                c['fit_label'] = "Large"
+            else:
+                c['fit_label'] = "N/A"
+
+        cursor.close()
+        conn.close()
+
+        return jsonify({"comments": comments}), 200
+
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"message": f"Error fetching comments: {str(e)}"}), 500
 
 # New blueprint for add-to-cart related routes
 @users_bp.route('/api/add_to_cart_product_details/<int:product_id>', methods=['GET'])
@@ -229,14 +342,16 @@ def fetch_add_to_cart_product_details(product_id):
         else:
             product['default_picture'] = None
 
-        # Fetch variants (size flags + prices + stocks)
+        # Fetch variants with shop_id from products table
         cursor.execute(''' 
-            SELECT variance_id, product_id, color, picture,
-                   XS, S, M, L, XL, XLL,
-                   XS_price, S_price, M_price, L_price, XL_price, XLL_price,
-                   XS_stock, S_stock, M_stock, L_stock, XL_stock, XLL_stock
-            FROM variances
-            WHERE product_id = %s
+            SELECT v.variance_id, v.product_id, v.color, v.picture,
+                   v.XS, v.S, v.M, v.L, v.XL, v.XLL,
+                   v.XS_price, v.S_price, v.M_price, v.L_price, v.XL_price, v.XLL_price,
+                   v.XS_stock, v.S_stock, v.M_stock, v.L_stock, v.XL_stock, v.XLL_stock,
+                   p.shop_id
+            FROM variances v
+            JOIN products p ON v.product_id = p.product_id
+            WHERE v.product_id = %s
         ''', (product_id,))
         variants = cursor.fetchall()
 
@@ -420,7 +535,283 @@ def user_cart():
     except Exception as e:
         return jsonify({"message": f"Error occurred: {str(e)}"}), 500
 
+@users_bp.route('/api/user_visiting_shop_profile', methods=['POST'])
+def user_visiting_shop_profile():
+    try:
+        # Extract only shop_id from the request body
+        data = request.get_json()
+        shop_id = data.get('shop_id')
 
+        if not shop_id:
+            return jsonify({"message": "Shop ID is required"}), 400
+
+        # Connect to the database
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Query to fetch shop profile details based on the shop_id
+        query = '''
+            SELECT id, shop_name, profile_pic, category, country, state, shop_email, description, contact_number
+            FROM shops
+            WHERE id = %s
+        '''
+        cursor.execute(query, (shop_id,))
+        shop = cursor.fetchone()
+
+        # Check if the shop is found
+        if shop:
+            shop_data = {
+                "id": shop[0],
+                "shop_name": shop[1],
+                "profile_pic": shop[2],  # File path for profile_pic
+                "category": shop[3],
+                "country": shop[4],
+                "state": shop[5],
+                "shop_email": shop[6],
+                "description": shop[7],
+                "contact_number": shop[8]
+            }
+            return jsonify(shop_data), 200
+        else:
+            return jsonify({"message": "Shop not found"}), 404
+
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"message": f"Error fetching shop profile: {str(e)}"}), 500
+
+    finally:
+        cursor.close()
+        conn.close()
+
+@users_bp.route('/api/user_visiting_shop_profile_cards', methods=['POST'])
+def user_visiting_shop_profile_cards():
+    try:
+        # Extract only shop_id from the request body
+        data = request.get_json()
+        shop_id = data.get('shop_id')
+
+        if not shop_id:
+            return jsonify({"message": "Shop ID is required"}), 400
+
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        cursor.execute(''' 
+            SELECT product_id, product_name, XS, S, M, L, XL, XLL, XS_price, S_price, M_price, L_price, XL_price, XLL_price, 
+                   XS_stock, S_stock, M_stock, L_stock, XL_stock, XLL_stock, default_picture
+            FROM products
+            WHERE shop_id = %s AND is_active = 1
+        ''', (shop_id,))
+
+        products = cursor.fetchall()
+
+        # Loop through each product to calculate the default price and format the image path
+        for product in products:
+            # Find the smallest price among the available sizes
+            price_columns = ['XS_price', 'S_price', 'M_price', 'L_price', 'XL_price', 'XLL_price']
+            valid_prices = [product[col] for col in price_columns if product[col] is not None]
+
+            if valid_prices:
+                default_price = min(valid_prices)  # Select the smallest price
+            else:
+                default_price = None  # If no price is available, set to None
+
+            product['default_price'] = default_price  # Add the calculated default_price to the product data
+
+            # ✅ Just normalize the path, do NOT add http://localhost:5070
+            if product['default_picture']:
+                path = product['default_picture'].replace('\\', '/')
+                product['default_picture'] = path  # e.g. "/static/uploads/xxx.jpg"
+            else:
+                product['default_picture'] = None
+
+        cursor.close()
+        conn.close()
+
+        return jsonify(products), 200
+
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"message": f"Error fetching products: {str(e)}"}), 500
+
+@users_bp.route('/api/open_chat', methods=['POST'])
+def open_chat():
+    try:
+        # Extract user_id and shop_id from the request body
+        data = request.get_json()
+        user_id = data.get('user_id')
+        shop_id = data.get('shop_id')
+
+        if not user_id or not shop_id:
+            return jsonify({"message": "User ID and Shop ID are required"}), 400
+
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        # Check if a chat already exists between the user and the shop
+        check_query = '''
+            SELECT chat_id FROM chats
+            WHERE (user_id = %s AND shop_id = %s)
+            OR (user_id = %s AND shop_id = %s)
+            LIMIT 1
+        '''
+        cursor.execute(check_query, (user_id, shop_id, shop_id, user_id))
+        existing_chat = cursor.fetchone()
+
+        if existing_chat:
+            # If chat exists, return the existing chat_id
+            return jsonify({"chat_id": existing_chat['chat_id']}), 200
+
+        # If no chat exists, create a new chat
+        insert_query = '''
+            INSERT INTO chats (user_id, shop_id)
+            VALUES (%s, %s)
+        '''
+        cursor.execute(insert_query, (user_id, shop_id))
+        conn.commit()
+
+        new_chat_id = cursor.lastrowid  # Get the new chat_id
+        return jsonify({"chat_id": new_chat_id}), 200
+
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"message": f"Error creating chat: {str(e)}"}), 500
+
+    finally:
+        # Close the connection and cursor
+        if conn:
+            cursor.close()
+            conn.close()
+
+
+@users_bp.route('/api/user-chat-rooms', methods=['GET'])
+def user_chat_rooms():
+    user_id = request.args.get('user_id')
+    if not user_id:
+        return jsonify({"error": "user_id is required"}), 400
+
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+
+        query = """
+        SELECT
+            c.chat_id,
+            c.shop_id,
+            s.shop_name,
+            s.category,
+            s.country,
+            s.profile_pic,
+            c.last_message,
+            c.last_message_time,
+            c.created_at
+        FROM chats c
+        JOIN shops s ON c.shop_id = s.id
+        WHERE c.user_id = %s
+        ORDER BY c.last_message_time DESC, c.created_at DESC
+        """
+        
+        cursor.execute(query, (user_id,))
+        chat_rooms = cursor.fetchall()
+
+        return jsonify({'chat_rooms': chat_rooms, 'for_user': user_id})
+
+    except mysql.connector.Error as err:
+        return jsonify({'message': f'Error: {err}'}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+@users_bp.route('/api/chats', methods=['GET', 'POST'])
+def view_chats():
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+
+        if request.method == 'POST':
+            # Handle sending new message
+            data = request.get_json()
+            user_id = data.get('user_id')
+            chat_id = data.get('chat_id')
+            message = data.get('message')
+            shop_id = data.get('shop_id')
+
+            # Only require user_id, chat_id, and shop_id for POST
+            if not all([user_id, chat_id, shop_id]):
+                return jsonify({"error": "user_id, chat_id, and shop_id are required"}), 400
+
+            # If message is provided, insert it
+            if message:
+                insert_query = """
+                    INSERT INTO messages (chat_id, sender_id, receiver_id, message)
+                    VALUES (%s, %s, %s, %s)
+                """
+                cursor.execute(insert_query, (chat_id, user_id, shop_id, message))
+                connection.commit()
+
+                # Get the new message with user details
+                message_query = """
+                    SELECT 
+                        m.id, m.message, m.sender_id, m.timestamp,
+                        u.username, u.profile_pic
+                    FROM messages m
+                    JOIN users u ON m.sender_id = u.id
+                    WHERE m.id = %s
+                """
+                cursor.execute(message_query, (cursor.lastrowid,))
+                new_message = cursor.fetchone()
+
+                return jsonify({'newMessage': new_message})
+            else:
+                # If no message, just return success (for chat creation)
+                return jsonify({'message': 'Chat ready'})
+
+        else:
+            # Handle GET request - fetch messages
+            user_id = request.args.get('user_id')
+            shop_id = request.args.get('shop_id')
+            chat_id = request.args.get('chat_id')
+
+            if not all([user_id, shop_id, chat_id]):
+                return jsonify({"error": "user_id, shop_id, and chat_id are required"}), 400
+
+            # Fetch messages with user info
+            messages_query = """
+                SELECT 
+                    m.id, m.message, m.sender_id, m.timestamp,
+                    u.username, u.profile_pic
+                FROM messages m
+                JOIN users u ON m.sender_id = u.id
+                WHERE m.chat_id = %s
+                ORDER BY m.timestamp ASC
+            """
+            cursor.execute(messages_query, (chat_id,))
+            messages = cursor.fetchall()
+
+            # Fetch shop details for header
+            shop_query = """
+                SELECT shop_name, profile_pic, category, country
+                FROM shops
+                WHERE id = %s
+            """
+            cursor.execute(shop_query, (shop_id,))
+            shop_details = cursor.fetchone()
+
+            return jsonify({
+                'messages': messages,
+                'shop_details': shop_details
+            })
+
+    except mysql.connector.Error as err:
+        return jsonify({'message': f'Error: {err}'}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+
+    
 @users_bp.route("/api/user_profile", methods=["GET"])
 def user_profile():
     try:

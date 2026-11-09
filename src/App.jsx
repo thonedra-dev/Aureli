@@ -11,7 +11,7 @@ import UserLogin from "./components/Shop_user/user_login";
 import UserProfile from "./components/Shop_user/user_profile";
 import AddToCart from './components/Shop_user/add_to_cart';
 import UserVisitingShopProfile from './components/Shop_user/user_visiting_shop_profile';
-
+import UserChats from './components/Shop_user/user_chats';
 
 
 
@@ -47,6 +47,7 @@ const App = () => {
 
          <Route path="/add_to_cart/:productId" element={<AddToCart />} /> {/* Route for AddToCart page */}
          <Route path="/user_visiting_shop_profile" element={<UserVisitingShopProfile />} />
+         <Route path="/user_chats" element={<UserChats />} />
 
         {/* Redirect default route */}
         <Route path="/" element={<Navigate to="/home" />} />
